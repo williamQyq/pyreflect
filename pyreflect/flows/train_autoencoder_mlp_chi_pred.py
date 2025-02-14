@@ -28,6 +28,7 @@ def run_model_training(
     dim_list = [('l' + str(i + 1)) for i in range(latent_dim)]
     ## Parameter size
     num_params = data_processor.params_arr.shape[1]
+    data_processor.num_params = num_params
     ## Dimension of the input curves
     in_d1 = 2
     in_d2 = 72
@@ -74,4 +75,5 @@ def run_model_training(
     print("\nFinal Mean Prediction Errors:")
     print(df_l2_err)
 
+    return trainer.percep,trainer.autoencoder, data_processor
 

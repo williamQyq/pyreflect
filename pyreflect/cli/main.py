@@ -5,6 +5,8 @@ from typing import Annotated
 import typer
 import pyreflect.flows as workflow
 
+import pandas as pd
+
 app = typer.Typer(help="A CLI tool for neutron reflectivity data processing.")
 
 # Command to initialize a configuration file
@@ -54,7 +56,7 @@ def init_settings(
 
 # Command to run the data processing and model training then saving
 @app.command("run")
-def run_analysis(
+def run_chi_pred_model_training(
     config: Annotated[
         Path,
         typer.Option(help="Path to the settings.yml file.", exists=True, readable=True),
@@ -79,5 +81,11 @@ def run_analysis(
         raise typer.Exit()
 
 
-    workflow.train_autoencoder_mlp_chi_pred.run_model_training(**{key: settings[key] for key in required_keys })
+    percep, autoencoder,data_processor = workflow.run_model_training(**{key: settings[key] for key in required_keys })
+    df_predictions = workflow.run_model_prediction(percep, autoencoder, data_processor.expt_arr,data_processor.sld_arr,data_processor.num_params)
 
+    print(pd.DataFrame(df_predictions))
+
+@app.command("predict")
+def run_chi_model_prediction():
+    pass
