@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from pyreflect.cli.index import process_data
+import pyreflect.flows as workflow
 
 app = typer.Typer(help="A CLI tool for neutron reflectivity data processing.")
 
@@ -25,6 +25,9 @@ def init_settings(
 ):
     """Create a default settings.yml file."""
     config_path = directory / "settings.yml"
+    data_folder = directory / "data"
+
+    data_folder.mkdir(parents=True,exist_ok=True)
 
     if config_path.exists() and not force:
         typer.echo(f"Settings file already exists at {config_path}. Use --force to overwrite.")
@@ -32,11 +35,15 @@ def init_settings(
 
     # Default settings
     default_settings = {
-        "mod_expt_file": "data/mod_expt.npy",
-        "mod_sld_file": "data/mod_sld.npy",
-        "mod_params_file": "data/mod_params.npy",
+         "mod_expt_file": str(data_folder / "mod_expt.npy"),
+        "mod_sld_file": str(data_folder / "mod_sld_fp49.npy"),
+        "mod_params_file": str(data_folder / "mod_params_fp49.npy"),
 
-        "latent_dim":2
+        #hyperparameter settings
+        "latent_dim":2,
+        "batch_size":16,
+        "ae_epochs":200,
+        "mlp_epochs":200,
     }
 
     with open(config_path, "w") as f:
@@ -45,7 +52,7 @@ def init_settings(
     typer.echo(f"Initialized settings file at {config_path}.")
 
 
-# Command to run the data processing
+# Command to run the data processing and model training then saving
 @app.command("run")
 def run_analysis(
     config: Annotated[
@@ -53,7 +60,7 @@ def run_analysis(
         typer.Option(help="Path to the settings.yml file.", exists=True, readable=True),
     ] = Path("settings.yml")
 ):
-    """Run data analysis using the specified settings."""
+    """Run SLD data analysis for Chi params using the specified settings."""
     # Load settings from the YAML file
     with open(config, "r") as f:
         settings = yaml.safe_load(f)
@@ -62,17 +69,15 @@ def run_analysis(
     mod_expt_file = settings.get("mod_expt_file")
     mod_sld_file = settings.get("mod_sld_file")
     mod_params_file = settings.get("mod_params_file")
+    batch_size = settings.get("batch_size")
 
-    if not (mod_expt_file and mod_sld_file and mod_params_file):
+    # IMPORTANT: Required Setting params
+    required_keys = {"mod_expt_file", "mod_sld_file", "mod_params_file", "batch_size"}
+
+    if not required_keys.issubset(settings):
         typer.echo("Invalid settings file. Ensure all file paths are specified.")
         raise typer.Exit()
 
-    # Run the main data processing function
-    process_data(mod_expt_file, mod_sld_file, mod_params_file)
 
-    # model = train_model()
+    workflow.train_autoencoder_mlp_chi_pred.run_model_training(**{key: settings[key] for key in required_keys })
 
-    # model.predict()
-
-if __name__ == "__main__":
-    app()
