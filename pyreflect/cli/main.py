@@ -3,9 +3,13 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from pkg_resources import require
+
 import pyreflect.flows as workflow
 
 import pandas as pd
+
+from pyreflect.models.config import ChiPredTrainingParams
 
 app = typer.Typer(help="A CLI tool for neutron reflectivity data processing.")
 
@@ -37,7 +41,7 @@ def init_settings(
 
     # Default settings
     default_settings = {
-         "mod_expt_file": str(data_folder / "mod_expt.npy"),
+        "mod_expt_file": str(data_folder / "mod_expt.npy"),
         "mod_sld_file": str(data_folder / "mod_sld_fp49.npy"),
         "mod_params_file": str(data_folder / "mod_params_fp49.npy"),
 
@@ -67,23 +71,33 @@ def run_chi_pred_model_training(
     with open(config, "r") as f:
         settings = yaml.safe_load(f)
 
-    # Extract file paths from the settings
-    mod_expt_file = settings.get("mod_expt_file")
-    mod_sld_file = settings.get("mod_sld_file")
-    mod_params_file = settings.get("mod_params_file")
-    batch_size = settings.get("batch_size")
+    # # Extract file paths from the settings
+    # mod_expt_file = settings.get("mod_expt_file")
+    # mod_sld_file = settings.get("mod_sld_file")
+    # mod_params_file = settings.get("mod_params_file")
+    # batch_size = settings.get("batch_size")
+    # ae_epochs = settings.get("ae_epochs")
 
     # IMPORTANT: Required Setting params
-    required_keys = {"mod_expt_file", "mod_sld_file", "mod_params_file", "batch_size"}
-
-    if not required_keys.issubset(settings):
-        typer.echo("Invalid settings file. Ensure all file paths are specified.")
+    required_keys = {
+        "mod_expt_file",
+        "mod_sld_file",
+        "mod_params_file",
+        "batch_size",
+        "latent_dim",
+        "ae_epochs",
+        "mlp_epochs",
+    }
+    missing_keys = required_keys - settings.keys()
+    if missing_keys:
+        typer.echo("Invalid settings file. Missing keys: {missing_keys}")
         raise typer.Exit()
 
-
-    percep, autoencoder,data_processor = workflow.run_model_training(**{key: settings[key] for key in required_keys })
+    chi_pred_params = ChiPredTrainingParams(**{key: settings[key] for key in required_keys})
+    percep, autoencoder,data_processor = workflow.run_model_training(chi_pred_params)
     df_predictions = workflow.run_model_prediction(percep, autoencoder, data_processor.expt_arr,data_processor.sld_arr,data_processor.num_params)
 
+    print("\nFinal Chi Prediction:")
     print(pd.DataFrame(df_predictions))
 
 @app.command("predict")

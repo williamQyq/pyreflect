@@ -12,6 +12,8 @@ class DataProcessor:
         self.params_arr = None
         self.expt_arr = None
 
+        self.num_params = None
+
         # Set random seeds
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -24,6 +26,8 @@ class DataProcessor:
 
         assert self.sld_arr.shape[1:] == (2, 72), f"Unexpected sld_arr shape: {self.sld_arr.shape}. Expected (*, 2, 72)"
         assert self.params_arr.shape[1] == 3, f"Unexpected params_arr shape: {self.params_arr.shape}. Expected (*, 3)"
+
+        self.num_params = self.params_arr.shape[1]
 
     def preprocess_data(self):
         """Cleans and normalizes data by removing flat and non-impact data."""
