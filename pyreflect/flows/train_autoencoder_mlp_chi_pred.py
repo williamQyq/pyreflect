@@ -1,4 +1,4 @@
-from pyreflect.data_processor import DataProcessor
+from pyreflect.data_processor import SLDChiDataProcessor
 from pyreflect.models.chi_pred_model_trainer import ModelTrainer
 from pyreflect.models import mlp, autoencoder as ae
 from pyreflect.models.config import ChiPredTrainingParams
@@ -14,7 +14,7 @@ def run_model_training(config: ChiPredTrainingParams):
     print(f"  - batch_size: {config.batch_size}")
 
     # init processor
-    data_processor = DataProcessor(config.mod_expt_file, config.mod_sld_file, config.mod_params_file,)
+    data_processor = SLDChiDataProcessor(config.mod_expt_file, config.mod_sld_file, config.mod_params_file,)
     # load data from file path
     data_processor.load_data()
     # remove flatten data and normalize

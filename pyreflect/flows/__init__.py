@@ -1,5 +1,5 @@
 from .train_autoencoder_mlp_chi_pred import run_model_training
-from .predict_expt_chi_labels import run_model_prediction
+from .sld_profile_pred_chi import run_model_prediction
 import torch
 
 

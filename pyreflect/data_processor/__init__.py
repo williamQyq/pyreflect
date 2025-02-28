@@ -1,6 +1,7 @@
-from .data_processor import DataProcessor
+from .data_processor import SLDChiDataProcessor,NRSLDDataProcessor
 
 __all__ = [
-    "DataProcessor"
+    "SLDChiDataProcessor",
+    "NRSLDDataProcessor"
 ]
 

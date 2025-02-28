@@ -64,8 +64,19 @@ def run_chi_pred_model_training(
     config: Annotated[
         Path,
         typer.Option(help="Path to the settings.yml file.", exists=True, readable=True),
-    ] = Path("settings.yml")
+    ] = Path("settings.yml"),
+    enable_chi_prediction: Annotated[
+        bool, typer.Option(help="Run Chi prediction.")
+    ]=False,
+    retrain: Annotated[
+        bool, typer.Option(help="Retrain the model from scratch.")
+    ] = False,
 ):
+    """Run SLD data analysis for Chi params using the specified settings."""
+    if not enable_chi_prediction or not config.exists():
+        typer.echo("Error: Either a valid config file must be provided or Chi prediction must be enabled.")
+        raise typer.Exit()
+
     """Run SLD data analysis for Chi params using the specified settings."""
     # Load settings from the YAML file
     with open(config, "r") as f:
@@ -94,11 +105,14 @@ def run_chi_pred_model_training(
         raise typer.Exit()
 
     chi_pred_params = ChiPredTrainingParams(**{key: settings[key] for key in required_keys})
-    percep, autoencoder,data_processor = workflow.run_model_training(chi_pred_params)
-    df_predictions = workflow.run_model_prediction(percep, autoencoder, data_processor.expt_arr,data_processor.sld_arr,data_processor.num_params)
 
-    print("\nFinal Chi Prediction:")
-    print(pd.DataFrame(df_predictions))
+    if enable_chi_prediction:
+        percep, autoencoder,data_processor = workflow.run_model_training(chi_pred_params)
+        df_predictions = workflow.run_model_prediction(percep, autoencoder, data_processor.expt_arr,data_processor.sld_arr,data_processor.num_params)
+
+        print("\nFinal Chi Prediction:")
+        print(pd.DataFrame(df_predictions))
+
 
 @app.command("predict")
 def run_chi_model_prediction():

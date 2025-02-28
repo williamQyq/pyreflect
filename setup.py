@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="nr-scft-ml",
     version="0.1.0",
-    description="The package tool for chi parameters prediction from SLD profile",
+    description="The package tool for neutron reflectivity and SLD profile analysis",
     author="Yuqing Qiao",
     author_email="qiao.yuqi@northeastern.edu",
     license="MIT",
