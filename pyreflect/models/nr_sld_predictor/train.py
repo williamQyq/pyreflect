@@ -1,4 +1,6 @@
 import torch
+from click.core import batch
+
 from pyreflect.models.nr_sld_predictor.model import CNN
 from pyreflect.input.data_processor import DataProcessor
 from .trainer import train_model, validate_model
@@ -9,8 +11,10 @@ def train_pipeline(curves_nr, curves_sld):
     # Data preparation
     processor = DataProcessor()
     R_m = curves_nr[:, 1][:, np.newaxis, :]
-    xtrain, ytrain, xval, yval, xtest, ytest = processor.split_arrays(R_m, curves_sld)
-    train_loader, valid_loader, _ = processor.get_dataloaders(xtrain, ytrain, xval, yval, xtest, ytest)
+    list_arrays = processor.split_arrays(R_m, curves_sld, size_split=0.8)
+    tensor_arrays = processor.convert_tensors(list_arrays)
+
+    train_dataset, valid_dataset, test_dataset, train_loader, valid_loader, test_loader = processor.get_dataloaders(*tensor_arrays,batch_size=32)
 
     # Model initialization
     model = CNN().to(DEVICE)

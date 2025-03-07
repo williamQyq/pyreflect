@@ -89,7 +89,7 @@ class SLDChiDataProcessor(DataProcessor):
 
 
 class NRSLDDataProcessor(DataProcessor):
-    def __init__(self, nr_file_path, sld_file_path, seed=123):
+    def __init__(self, nr_file_path=None, sld_file_path=None, seed=123):
         """
         Processes NR and SLD curve data.
         """
@@ -101,14 +101,20 @@ class NRSLDDataProcessor(DataProcessor):
 
     def load_data(self):
         """Loads NR and SLD data."""
-        self.nr_arr = np.load(self.nr_file_path)
-        self.sld_arr = np.load(self.sld_file_path)
+        if self.nr_file_path:
+            self.nr_arr = np.load(self.nr_file_path)
+        if self.sld_file_path:
+            self.sld_arr = np.load(self.sld_file_path)
+
+        if self.nr_file_path is None and self.sld_file_path is None:
+            raise ValueError("At least one of nr_file_path or sld_file_path must be provided.")
+
 
     def normalize(self, curves):
         """
         Normalizes curves using log transformation and min-max scaling.
         """
-        assert curves is not None, "Curves data not loaded."
+        assert curves is not None, "Curves data is not loaded."
         curves = np.log10(curves)
 
         x_points = [curve[0] for curve in curves]
@@ -132,3 +138,17 @@ class NRSLDDataProcessor(DataProcessor):
         """Normalizes SLD curves."""
         self.sld_arr = self.normalize(self.sld_arr)
         return self.sld_arr
+
+    def reshape_nr_to_single_channel(self):
+        """
+        Reshapes NR data to (batch_size, 1, sequence_length) for CNN input.
+
+        Returns:
+        - reshaped_nr (numpy.ndarray): Reshaped NR data.
+        """
+        if self.nr_arr is None:
+            raise ValueError("NR data not loaded. Call `load_data()` first.")
+
+        # Selecting the second channel (index 1) and reshaping to (batch_size, 1, sequence_length)
+        reshaped_nr = self.nr_arr[:, 1][:, np.newaxis, :]
+        return reshaped_nr
