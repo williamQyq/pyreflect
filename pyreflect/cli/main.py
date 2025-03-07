@@ -3,13 +3,12 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from pkg_resources import require
-
 import pyreflect.flows as workflow
-
 import pandas as pd
 
+from pyreflect.flows import predict_sld_from_nr
 from pyreflect.models.config import ChiPredTrainingParams
+INVALID_METHOD_ERROR = "Invalid method"
 
 app = typer.Typer(help="A CLI tool for neutron reflectivity data processing.")
 
@@ -31,9 +30,13 @@ def init_settings(
 ):
     """Create a default settings.yml file."""
     config_path = directory / "settings.yml"
+    # store all data files
     data_folder = directory / "data"
+    #curves folder for nr sld training
+    curves_folder = directory / "data"/ "curves"
 
     data_folder.mkdir(parents=True,exist_ok=True)
+    curves_folder.mkdir(parents=True,exist_ok=True)
 
     if config_path.exists() and not force:
         typer.echo(f"Settings file already exists at {config_path}. Use --force to overwrite.")
@@ -48,19 +51,48 @@ def init_settings(
         #hyperparameter settings
         "latent_dim":2,
         "batch_size":16,
-        "ae_epochs":200,
-        "mlp_epochs":200,
+        "ae_epochs":20,
+        "mlp_epochs":20,
+
+        # SLD Prediction settings
+
+        "nr_sld_model_file":str(data_folder / "trained_sld_model.pth"),
     }
 
+    yaml_content = f"""\
+    # 🛠 Configuration file for NR-SLD-Chi Predictor
+    # Modify these paths according to your project structure.
+
+    # 📂 Experimental SLD profile data file (input for Chi Prediction)
+    mod_expt_file: {default_settings["mod_expt_file"]}
+
+    # 📂 SLD Profile file (input for training)
+    mod_sld_file: {default_settings["mod_sld_file"]}
+
+    # 📂 Chi Parameters file (output label for training)
+    mod_params_file: {default_settings["mod_params_file"]}
+
+    # ⚙️ SLD-Chi Model hyperparameters
+    latent_dim: {default_settings["latent_dim"]}  # Dimension for latent space
+    batch_size: {default_settings["batch_size"]}  # Batch size for training
+    ae_epochs: {default_settings["ae_epochs"]}  # Autoencoder training epochs
+    mlp_epochs: {default_settings["mlp_epochs"]}  # MLP training epochs
+
+    # 📁 Trained NR predict SLD model storage
+    expt_nr_file:
+    nr_sld_curves_poly:
+    sld_curves_poly:
+    nr_sld_model_file: {default_settings["nr_sld_model_file"]}
+    """
+
     with open(config_path, "w") as f:
-        yaml.dump(default_settings, f)
+        f.write(yaml_content)
 
     typer.echo(f"Initialized settings file at {config_path}.")
 
-
 # Command to run the data processing and model training then saving
 @app.command("run")
-def run_chi_pred_model_training(
+def _run_cli(
     config: Annotated[
         Path,
         typer.Option(help="Path to the settings.yml file.", exists=True, readable=True),
@@ -68,12 +100,13 @@ def run_chi_pred_model_training(
     enable_chi_prediction: Annotated[
         bool, typer.Option(help="Run Chi prediction.")
     ]=False,
-    retrain: Annotated[
-        bool, typer.Option(help="Retrain the model from scratch.")
-    ] = False,
+    enable_sld_prediction: Annotated[
+        bool, typer.Option(help="Run SLD prediction.")
+    ]=False,
+
 ):
     """Run SLD data analysis for Chi params using the specified settings."""
-    if not enable_chi_prediction or not config.exists():
+    if not config.exists():
         typer.echo("Error: Either a valid config file must be provided or Chi prediction must be enabled.")
         raise typer.Exit()
 
@@ -81,13 +114,6 @@ def run_chi_pred_model_training(
     # Load settings from the YAML file
     with open(config, "r") as f:
         settings = yaml.safe_load(f)
-
-    # # Extract file paths from the settings
-    # mod_expt_file = settings.get("mod_expt_file")
-    # mod_sld_file = settings.get("mod_sld_file")
-    # mod_params_file = settings.get("mod_params_file")
-    # batch_size = settings.get("batch_size")
-    # ae_epochs = settings.get("ae_epochs")
 
     # IMPORTANT: Required Setting params
     required_keys = {
@@ -104,16 +130,48 @@ def run_chi_pred_model_training(
         typer.echo("Invalid settings file. Missing keys: {missing_keys}")
         raise typer.Exit()
 
-    chi_pred_params = ChiPredTrainingParams(**{key: settings[key] for key in required_keys})
+    chi_pred_params = ChiPredTrainingParams(
+        **{key: settings[key] for key in required_keys}
+    )
 
+    #run Chi Prediction
     if enable_chi_prediction:
-        percep, autoencoder,data_processor = workflow.run_model_training(chi_pred_params)
-        df_predictions = workflow.run_model_prediction(percep, autoencoder, data_processor.expt_arr,data_processor.sld_arr,data_processor.num_params)
+        typer.echo("Running Chi prediction...")
+        percep, autoencoder,data_processor = workflow.train_autoencoder_mlp_chi_pred.run_model_training(chi_pred_params)
+        df_predictions = workflow.sld_profile_pred_chi.run_model_prediction(percep, autoencoder, data_processor.expt_arr,data_processor.sld_arr,data_processor.num_params)
 
-        print("\nFinal Chi Prediction:")
-        print(pd.DataFrame(df_predictions))
+        typer.echo("\nFinal Chi Prediction:")
+        typer.echo(pd.DataFrame(df_predictions))
+
+    #Run SLD Prediction
+    if enable_sld_prediction:
+        typer.echo("\nRunning SLD Prediction...")
+
+        # Load NR and SLD data
+        nr_file = settings["NR-SLD_CurvesPoly"]
+        sld_file = settings["SLD_CurvesPoly"]
+        model_path = settings["nr_sld_model_file"]
+
+        # Load experimental NR curves for inference
+        expt_nr_file = settings["expt_nr_file"]
+
+        model = None
+        # Check if a trained SLD model exists, else train one
+        if Path(model_path).exists():
+            model = workflow.load_nr_sld_model(model_path)
+            typer.echo("Loaded existing trained SLD model.")
+        else:
+            typer.echo("No trained SLD model found. Training a new model...")
+            model = workflow.train_nr_predict_sld_model(nr_file, sld_file, to_be_saved_model_path= model_path)
+
+            typer.echo(f"Trained SLD model saved at {model_path}")
+
+        if not model:
+            typer.echo("Model not loaded.")
+            raise typer.Exit()
 
 
-@app.command("predict")
-def run_chi_model_prediction():
-    pass
+        predicted_sld = workflow.predict_sld_from_nr(model,expt_nr_file)
+        print(predicted_sld)
+        typer.echo("SLD Prediction complete!")
+

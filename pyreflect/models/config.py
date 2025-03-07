@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import torch
 
 @dataclass
 class ChiPredTrainingParams:
@@ -9,3 +10,5 @@ class ChiPredTrainingParams:
     latent_dim:int
     ae_epochs: int
     mlp_epochs:int
+
+DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

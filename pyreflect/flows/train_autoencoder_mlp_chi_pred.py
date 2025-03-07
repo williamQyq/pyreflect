@@ -1,4 +1,4 @@
-from pyreflect.data_processor import SLDChiDataProcessor
+from pyreflect.input import SLDChiDataProcessor
 from pyreflect.models.chi_pred_model_trainer import ModelTrainer
 from pyreflect.models import mlp, autoencoder as ae
 from pyreflect.models.config import ChiPredTrainingParams
@@ -14,17 +14,21 @@ def run_model_training(config: ChiPredTrainingParams):
     print(f"  - batch_size: {config.batch_size}")
 
     # init processor
-    data_processor = SLDChiDataProcessor(config.mod_expt_file, config.mod_sld_file, config.mod_params_file,)
+    data_processor = SLDChiDataProcessor(config.mod_expt_file, config.mod_sld_file, config.mod_params_file)
     # load data from file path
     data_processor.load_data()
     # remove flatten data and normalize
     data_processor.preprocess_data()
 
-    # training, validation, testing arrays
-    list_arrays = data_processor.split_arrays(size_split=0.7)
+    #Fix Error for mat mult in VAE
+    sld_arr_cut = data_processor.sld_arr
+    sld_arr_cut_flat = sld_arr_cut.reshape(sld_arr_cut.shape[0], -1)
 
+    # training, validation, testing arrays
+    list_arrays = data_processor.split_arrays(sld_arr_cut_flat, data_processor.params_arr, size_split=0.7)
+    tensor_arrays = data_processor.convert_tensors(list_arrays)
     #train val data tensors from data processing
-    tr_data, val_data,tst_data, tr_load, val_load,tst_load = data_processor.get_dataloaders(*list_arrays,config.batch_size)
+    tr_data, val_data,tst_data, tr_load, val_load,tst_load = data_processor.get_dataloaders(*tensor_arrays,config.batch_size)
 
     dim_list = [('l' + str(i + 1)) for i in range(config.latent_dim)]
 

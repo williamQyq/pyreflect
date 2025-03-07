@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
 
+
 class DataProcessor:
     def __init__(self, seed=123):
         """
@@ -11,45 +12,45 @@ class DataProcessor:
         torch.manual_seed(seed)
         np.random.seed(seed)
 
-    def split_arrays(self, X, Y, size_split=0.8):
+    def split_arrays(self, X, y, size_split=0.8):
         """
         Splits the dataset into training, validation, and test sets.
         """
-        split1 = int(len(X) * size_split)
-        split2 = int(len(X) * (size_split + (1 - size_split) / 2))
+        crv_tr, crv_hld, chi_tr, chi_hld = train_test_split(X, y, train_size=size_split)
+        crv_val, crv_tst, chi_val, chi_tst = train_test_split(crv_hld, chi_hld, test_size=0.5)
 
-        xtrain, ytrain = X[:split1], Y[:split1]
-        xval, yval = X[split1:split2], Y[split1:split2]
-        xtest, ytest = X[split2:], Y[split2:]
+        return [crv_tr, chi_tr, crv_val, chi_val, crv_tst, chi_tst]
 
-        return xtrain, ytrain, xval, yval, xtest, ytest
+    def convert_tensors(self,list_arrays):
+        ## Convert to tensors
+        tensor_arrays = [torch.from_numpy(array).float() for array in list_arrays]
+        return tensor_arrays
 
     def get_dataloaders(self, xtrain, ytrain, xval, yval, xtest, ytest, batch_size=32):
         """
         Converts split datasets into PyTorch dataloaders.
         """
-        train_dataset = torch.utils.data.TensorDataset(torch.tensor(xtrain, dtype=torch.float32),
-                                                       torch.tensor(ytrain, dtype=torch.float32))
-        valid_dataset = torch.utils.data.TensorDataset(torch.tensor(xval, dtype=torch.float32),
-                                                       torch.tensor(yval, dtype=torch.float32))
-        test_dataset = torch.utils.data.TensorDataset(torch.tensor(xtest, dtype=torch.float32),
-                                                      torch.tensor(ytest, dtype=torch.float32))
+        train_dataset = torch.utils.data.TensorDataset(xtrain,ytrain)
+        valid_dataset = torch.utils.data.TensorDataset(xval,yval)
+        test_dataset = torch.utils.data.TensorDataset(xtest,ytest)
 
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+        valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-        return train_loader, valid_loader, test_loader
+        return [train_dataset,valid_dataset,test_dataset,train_loader, valid_loader, test_loader]
 
 class SLDChiDataProcessor(DataProcessor):
-    def __init__(self, sld_file_path, chi_params_file_path, seed=123):
+    def __init__(self, expt_sld_file_path, sld_file_path, chi_params_file_path, seed=123):
         """
         Processes SLD and Chi parameter data.
         """
         super().__init__(seed)
         self.sld_file_path = sld_file_path
         self.chi_params_file_path = chi_params_file_path
+        self.expt_sld_file_path = expt_sld_file_path
         self.sld_arr = None
+        self.expt_arr = None
         self.params_arr = None
         self.num_params = None
 
@@ -57,18 +58,28 @@ class SLDChiDataProcessor(DataProcessor):
         """Loads SLD and Chi parameter data."""
         self.sld_arr = np.load(self.sld_file_path)
         self.params_arr = np.load(self.chi_params_file_path)
-
+        self.expt_arr = np.load(self.expt_sld_file_path)
         self.num_params = self.params_arr.shape[1]
 
     def preprocess_data(self):
-        """Cleans and normalizes the SLD and Chi parameter data."""
-        assert self.sld_arr is not None and self.params_arr is not None, "Data not loaded."
+        """Cleans and normalizes data by removing flat and non-impact data."""
+
+        assert self.sld_arr is not None or self.params_arr is not None and self.expt_arr is not None, "data not loaded."
 
         # Remove flat data
-        flat_data = [i for i in range(self.sld_arr.shape[0])
-                     if self.sld_arr[i, 1, 1] == self.sld_arr[i, 1, 0] == self.sld_arr[i, 1, 2]]
+        flat_data = []
+        for i in range(self.sld_arr.shape[0]):
+            y_start = self.sld_arr[i, 1, 0]
+            if self.sld_arr[i, 1, 1] == y_start and self.sld_arr[i, 1, 2] == y_start:
+                flat_data.append(i)
+
         self.sld_arr = np.delete(self.sld_arr, flat_data, 0)
         self.params_arr = np.delete(self.params_arr, flat_data, 0)
+
+        # Remove non-impact data (chi1 range filter)
+        bad_chi1 = [i for i in range(self.sld_arr.shape[0]) if not (0.07 <= self.params_arr[i, 0] <= 0.12)]
+        self.sld_arr = np.delete(self.sld_arr, bad_chi1, 0)
+        self.params_arr = np.delete(self.params_arr, bad_chi1, 0)
 
         # Normalize parameters
         for i in range(self.params_arr.shape[1]):
@@ -115,7 +126,9 @@ class NRSLDDataProcessor(DataProcessor):
     def normalize_nr(self):
         """Normalizes NR curves."""
         self.nr_arr = self.normalize(self.nr_arr)
+        return self.nr_arr
 
     def normalize_sld(self):
         """Normalizes SLD curves."""
         self.sld_arr = self.normalize(self.sld_arr)
+        return self.sld_arr

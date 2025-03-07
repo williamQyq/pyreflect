@@ -1,0 +1,26 @@
+import torch
+from pyreflect.models.nr_sld_predictor.model import CNN
+from pyreflect.input.data_processor import DataProcessor
+from .trainer import train_model, validate_model
+from .config import DEVICE, LEARNING_RATE, WEIGHT_DECAY, EPOCHS
+import numpy as np
+
+def train_pipeline(curves_nr, curves_sld):
+    # Data preparation
+    processor = DataProcessor()
+    R_m = curves_nr[:, 1][:, np.newaxis, :]
+    xtrain, ytrain, xval, yval, xtest, ytest = processor.split_arrays(R_m, curves_sld)
+    train_loader, valid_loader, _ = processor.get_dataloaders(xtrain, ytrain, xval, yval, xtest, ytest)
+
+    # Model initialization
+    model = CNN().to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    loss_fn = torch.nn.MSELoss()
+
+    # Training loop
+    for epoch in range(EPOCHS):
+        train_loss = train_model(model, train_loader, optimizer, loss_fn)
+        val_loss = validate_model(model, valid_loader, loss_fn)
+        print(f"Epoch {epoch+1}/{EPOCHS} - Train Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}")
+
+    return model

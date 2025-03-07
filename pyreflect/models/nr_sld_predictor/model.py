@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class CNN(nn.Module):
-    def __init__(self, layers):
+    def __init__(self, layers=12):
         super(CNN, self).__init__()
         self.layers = nn.ModuleList()
         addition = 255 / layers
