@@ -5,8 +5,6 @@ from typing import Annotated
 import typer
 import pyreflect.flows as workflow
 
-from pyreflect.flows import predict_sld_from_nr
-from pyreflect.models.config import ChiPredTrainingParams
 INVALID_METHOD_ERROR = "Invalid method"
 
 app = typer.Typer(help="A CLI tool for neutron reflectivity data processing.")

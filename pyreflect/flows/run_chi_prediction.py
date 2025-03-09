@@ -8,6 +8,7 @@ def run_chi_prediction(root,config):
 
     # Extract required parameters else missing key error.
     try:
+        config["root"] = root
         chi_pred_params = ChiPredTrainingParams(_config=config)
     except Exception as e:
         typer.echo(e)
