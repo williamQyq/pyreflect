@@ -74,6 +74,8 @@ def train_nr_predict_sld_model(nr_file,sld_file,to_be_saved_model_path):
 def predict_sld_from_nr(model, nr_file):
     processor = NRSLDDataProcessor(nr_file_path=nr_file)
     processor.load_data()
+    print(f"nr curves: {processor.nr_arr}")
+
     processor.normalize_nr()
     reshaped_nr_curves = processor.reshape_nr_to_single_channel()
 

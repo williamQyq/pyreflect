@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "nr-scft-ml"
+name = "pyreflect"
 version = "0.1.0"
-description = "The package tool for chi parameters prediction from SLD profile"
+description = "The package tool for neutron reflectivity analysis"
 authors = ["Yuqing Qiao <qiao.yuqi@northeastern.edu>"]
 license = "MIT"
 readme = "README.md"
-package-mode = false
+package-mode = true
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -28,3 +28,22 @@ numpy = "2.1.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[project]
+name = "pyreflect"
+version = "0.0.1"
+authors = [
+  { name="Yuqing Qiao", email="qiao.yuqi@northeastern.edu" },
+]
+description = "The package tool for neutron reflectivity analysis"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/williamQyq/pyreflect"
+Issues = "https://github.com/williamQyq/pyreflect/issues"
