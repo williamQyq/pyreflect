@@ -1,5 +1,4 @@
 import torch
-from click.core import batch
 
 from pyreflect.models.nr_sld_predictor.model import CNN
 from pyreflect.input.data_processor import DataProcessor

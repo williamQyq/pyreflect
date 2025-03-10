@@ -32,10 +32,11 @@ INIT_YAML_CONTENT = f"""\
         ### ⚙️ NR predict SLD profile settings ###
         nr_predict_sld:
             file:
-                experimental_nr_file: curves/experimental_nr_curves.npy # Experimental nr data for sld prediction
-                nr_curves_poly: curves/nr_curves_poly.npy   #generated nr curves for training
-                sld_curves_poly: curves/sld_curves_poly.npy #generated sld curves for training
-                trained_nr_predict_sld_model: trained_nr_sld_model.pth # Trained CNN Model
-
-            num_curves: 1000 #number of generated curves for training 
+                experimental_nr_file: data/curves/experimental_nr_curves.npy # Experimental nr data for sld prediction
+                nr_curves_poly: data/curves/nr_curves_poly.npy   #generated nr curves for training
+                sld_curves_poly: data/curves/sld_curves_poly.npy #generated sld curves for training
+            
+            models:
+                model: data/curves/trained_nr_sld_model.pth # Trained CNN Model
+                num_curves: 100 #number of generated curves for training 
         """
