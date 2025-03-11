@@ -6,6 +6,7 @@ from pyreflect.models.nr_sld_predictor.inference import predict_sld
 from pyreflect.models.nr_sld_predictor.train import train_pipeline
 from pyreflect.models.nr_sld_predictor.model import CNN
 
+from typing import List
 import numpy as np
 import torch
 import typer
@@ -71,13 +72,20 @@ def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)->
         typer.echo(f"NR predict SLD trained CNN model saved at: {to_be_saved_model_path}")
     return model
 
-def predict_sld_from_nr(model, nr_file):
+def predict_sld_from_nr(model, nr_file)->List[float]:
     processor = NRSLDDataProcessor(nr_file_path=nr_file)
+
+    #load data into nr_arr
     processor.load_data()
-    print(f"nr curves: {processor.nr_arr}")
 
     processor.normalize_nr()
+
+    typer.echo(f"Processed NR shape:{processor.nr_arr.shape}\n")
+
+    #Remove wave vector x axis of NR
     reshaped_nr_curves = processor.reshape_nr_to_single_channel()
 
+    #Prediction
     predicted_sld_curves = [predict_sld(model, curve) for curve in reshaped_nr_curves]
+
     return predicted_sld_curves
