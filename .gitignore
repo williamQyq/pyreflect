@@ -1,3 +1,7 @@
 .idea/
 *.yml
 data/
+*/__pycache__
+*.pyc
+*.pyo
+dist/
