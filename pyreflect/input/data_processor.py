@@ -96,15 +96,15 @@ class NRSLDDataProcessor(DataProcessor):
         super().__init__(seed)
         self.nr_file_path = nr_file_path
         self.sld_file_path = sld_file_path
-        self.nr_arr = None
-        self.sld_arr = None
+        self._nr_arr = None
+        self._sld_arr = None
 
     def load_data(self):
         """Loads NR and SLD data."""
         if self.nr_file_path:
-            self.nr_arr = np.load(self.nr_file_path)
+            self._nr_arr = np.load(self.nr_file_path)
         if self.sld_file_path:
-            self.sld_arr = np.load(self.sld_file_path)
+            self._sld_arr = np.load(self.sld_file_path)
 
         if self.nr_file_path is None and self.sld_file_path is None:
             raise FileNotFoundError("At least one of nr_file_path or sld_file_path must be provided.")
@@ -131,24 +131,26 @@ class NRSLDDataProcessor(DataProcessor):
     def normalize_nr(self):
         """Normalizes NR curves."""
         # Reflectivity decreases exponentially, log transformation compress large range
-        curves_nr = np.log10(np.maximum(self.nr_arr, 1e-8))  # Prevent log(0) issues
+        curves_nr = np.log10(np.maximum(self._nr_arr, 1e-8))  # Prevent log(0) issues
         return self.normalize(curves_nr)
 
     def normalize_sld(self):
         """Normalizes SLD curves."""
-        self.sld_arr = self.normalize(self.sld_arr)
-        return self.sld_arr
+        return self.normalize(self._sld_arr)
 
-    def reshape_nr_to_single_channel(self):
+    def reshape_nr_to_single_channel(self,nr_data:np.ndarray)->np.ndarray:
         """
         Reshapes NR data to (batch_size, 1, sequence_length) for CNN input.
 
         Returns:
         - reshaped_nr (numpy.ndarray): Reshaped NR data.
         """
-        if self.nr_arr is None:
-            raise ValueError("NR data not loaded. Call `load_data()` first.")
+        if not isinstance(nr_data, np.ndarray):
+            raise TypeError("nr_data must be a numpy array.")
+
+        if nr_data.ndim != 3 or nr_data.shape[1] != 2:
+            raise ValueError(f"Expected input shape (batch_size, 2, sequence_length), got {nr_data.shape}")
 
         # Selecting the second channel (index 1) and reshaping to (batch_size, 1, sequence_length)
-        reshaped_nr = self.nr_arr[:, 1][:, np.newaxis, :]
+        reshaped_nr = nr_data[:, 1][:, np.newaxis, :]
         return reshaped_nr

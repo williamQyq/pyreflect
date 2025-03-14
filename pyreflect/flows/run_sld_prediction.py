@@ -33,7 +33,7 @@ def run_sld_prediction(root:str | Path,config:dict):
     model = load_nr_sld_model(model_path)
 
     # Perform prediction
-    experimental_nr_file = root / config["nr_predict_sld"]["file"]["experimental_nr_file"]
+    experimental_nr_file = root / Path(config["nr_predict_sld"]["file"]["experimental_nr_file"])
     if not experimental_nr_file.exists():
         msg = f"\n\n⚠️  Error: The experimental NR file does not exist.\n"
         msg += "Please update the configuration and provide a valid NR file for prediction."

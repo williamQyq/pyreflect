@@ -13,8 +13,8 @@ SPLIT_RATIO = 0.8
 class NRSLDModelTrainer:
     def __init__(self, data_processor:NRSLDDataProcessor,layers, batch_size, epochs):
         self.model = CNN(layers).to(DEVICE) #model
-        self.X = data_processor.nr_arr # nr curves
-        self.y = data_processor.sld_arr # sld curves
+        self.X = data_processor.normalize_nr() # normalized nr curves
+        self.y = data_processor.normalize_sld() # normalized sld curves
         self.data_processor = data_processor
         self.layers = layers
         self.batch_size = batch_size
@@ -23,7 +23,7 @@ class NRSLDModelTrainer:
     def train_pipeline(self):
 
         # remove wave vector(x channel) from nr
-        R_m = self.data_processor.reshape_nr_to_single_channel()
+        R_m = self.data_processor.reshape_nr_to_single_channel(self.X)
 
         list_arrays = self.data_processor.split_arrays(R_m, self.y, size_split=SPLIT_RATIO)
         tensor_arrays = self.data_processor.convert_tensors(list_arrays)

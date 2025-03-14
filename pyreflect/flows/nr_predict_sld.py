@@ -1,15 +1,13 @@
-from click.core import batch
-
 from pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator
 from pyreflect.input.data_processor import NRSLDDataProcessor
 from pyreflect.models.config import DEVICE, NRSLDCurvesGeneratorParams, NRSLDModelTrainerParams
 from pyreflect.models.cnn import CNN
 from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
 
-from typing import List
 import numpy as np
 import torch
 import typer
+from pathlib import Path
 
 def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)-> None:
 
@@ -65,8 +63,6 @@ def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)->
     """
     data_processor = NRSLDDataProcessor(params.nr_file,params.sld_file)
     data_processor.load_data()
-    data_processor.normalize_nr()
-    data_processor.normalize_sld()
 
     trainer = NRSLDModelTrainer(
         data_processor=data_processor,
@@ -86,7 +82,7 @@ def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)->
 
     return model
 
-def predict_sld_from_nr(model, nr_file)->np.ndarray:
+def predict_sld_from_nr(model, nr_file:str | Path)->np.ndarray:
     """
         Predicts SLD profiles from given NR curves using a trained model.
 
@@ -106,9 +102,10 @@ def predict_sld_from_nr(model, nr_file)->np.ndarray:
         typer.echo(e)
         raise typer.Exit()
 
-    processor.normalize_nr()
+    # Normalization
+    nr_arr = processor.normalize_nr()
 
-    typer.echo(f"Processed NR shape:{processor.nr_arr.shape}\n")
+    typer.echo(f"Processed NR shape:{nr_arr}\n")
 
     #Remove wave vector (x channel) of NR
     reshaped_nr_curves = processor.reshape_nr_to_single_channel()
