@@ -38,7 +38,7 @@ INIT_YAML_CONTENT = f"""\
             
             models:
                 model: data/curves/trained_nr_sld_model.pth # Path to save and load the CNN model
-                num_curves: 100 # Number of generated curves for training 
-                epochs: 1 # CNN training epochs
+                num_curves: 50000 # Number of generated curves for training 
+                epochs: 10 # CNN training epochs
                 batch_size: 32 # Batch size for training
         """

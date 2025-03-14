@@ -112,27 +112,27 @@ class NRSLDDataProcessor(DataProcessor):
 
     def normalize(self, curves):
         """
-        Normalizes curves using log transformation and min-max scaling.
+        Normalizes curves
         """
-        assert curves is not None, "Curves data is not loaded."
-        curves = np.log10(curves)
 
-        x_points = [curve[0] for curve in curves]
-        y_points = [curve[1] for curve in curves]
+        # Separate x and y components
+        x_points, y_points = curves[:, 0, :], curves[:, 1, :]
 
-        min_x, max_x = np.min([np.min(x) for x in x_points]), np.max([np.max(x) for x in x_points])
-        min_y, max_y = np.min([np.min(y) for y in y_points]), np.max([np.max(y) for y in y_points])
+        # Min-Max normalization
+        min_x, max_x = x_points.min(), x_points.max()
+        min_y, max_y = y_points.min(), y_points.max()
 
-        for i in range(len(y_points)):
-            x_points[i] = (x_points[i] - min_x) / (max_x - min_x)
-            y_points[i] = (y_points[i] - min_y) / (max_y - min_y)
+        x_points = (x_points - min_x) / (max_x - min_x)
+        y_points = (y_points - min_y) / (max_y - min_y)
 
+        # Stack back to the original format (N, 2, M)
         return np.stack([x_points, y_points], axis=1)
 
     def normalize_nr(self):
         """Normalizes NR curves."""
-        self.nr_arr = self.normalize(self.nr_arr)
-        return self.nr_arr
+        # Reflectivity decreases exponentially, log transformation compress large range
+        curves_nr = np.log10(np.maximum(self.nr_arr, 1e-8))  # Prevent log(0) issues
+        return self.normalize(curves_nr)
 
     def normalize_sld(self):
         """Normalizes SLD curves."""

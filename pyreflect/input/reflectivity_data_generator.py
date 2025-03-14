@@ -93,7 +93,7 @@ class ReflectivityDataGenerator:
         self._pars_array = self.to_model_parameters(self._train_pars)
 
         from tqdm.auto import tqdm
-        for p in tqdm(self._pars_array,desc="Processing reflectivity curves"):
+        for p in tqdm(self._pars_array,desc="Processing reflectivity curves", colour="green"):
             _desc = self.get_model_description(p)
             r, z, sld = self.calculate_reflectivity()
             self._refl_array.append(r)

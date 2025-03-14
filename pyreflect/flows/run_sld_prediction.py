@@ -4,9 +4,9 @@ from .nr_predict_sld import load_nr_sld_model, train_nr_predict_sld_model, gener
 from pyreflect.models.config import NRSLDCurvesGeneratorParams,NRSLDModelTrainerParams
 import typer
 
-def run_sld_prediction(root:Path,config:dict):
+def run_sld_prediction(root:str | Path,config:dict):
     config["root"] = root
-    model_path = root / config["nr_predict_sld"]["models"]["model"]
+    model_path = root / Path(config["nr_predict_sld"]["models"]["model"])
 
     # Train Model and save if no model found
     if not model_path.exists():

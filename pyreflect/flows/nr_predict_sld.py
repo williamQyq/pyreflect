@@ -65,6 +65,8 @@ def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)->
     """
     data_processor = NRSLDDataProcessor(params.nr_file,params.sld_file)
     data_processor.load_data()
+    data_processor.normalize_nr()
+    data_processor.normalize_sld()
 
     trainer = NRSLDModelTrainer(
         data_processor=data_processor,
