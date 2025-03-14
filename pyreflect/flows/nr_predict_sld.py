@@ -103,12 +103,12 @@ def predict_sld_from_nr(model, nr_file:str | Path)->np.ndarray:
         raise typer.Exit()
 
     # Normalization
-    nr_arr = processor.normalize_nr()
+    normalized_nr_arr = processor.normalize_nr()
 
-    typer.echo(f"Processed NR shape:{nr_arr}\n")
+    typer.echo(f"Processed NR shape:{normalized_nr_arr.shape}\n")
 
     #Remove wave vector (x channel) of NR
-    reshaped_nr_curves = processor.reshape_nr_to_single_channel()
+    reshaped_nr_curves = processor.reshape_nr_to_single_channel(normalized_nr_arr)
 
     # Stack all curves into a batch for efficient model inference
     reshaped_nr_curves = np.stack(reshaped_nr_curves)
