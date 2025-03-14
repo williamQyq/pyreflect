@@ -71,8 +71,7 @@ def _run_cli(
     #Run sld prediction
     if enable_sld_prediction:
         typer.echo("\nRunning SLD Prediction...")
-        predictions = workflow.run_sld_prediction(root, config)
+        workflow.run_sld_prediction(root, config)
 
-        typer.echo(f"Predictions: \n{predictions}")
         typer.echo("SLD Prediction complete!")
 

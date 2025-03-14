@@ -5,7 +5,7 @@ from scipy.interpolate import CubicSpline
 from refl1d.names import QProbe,Slab,SLD,Parameter,Experiment
 
 class ReflectivityDataGenerator:
-    def __init__(self, first, second, q=None, name='polymer'):
+    def __init__(self, q=None, name='polymer'):
 
         """
         Initialize the Reflectivity Data Generator.
@@ -16,6 +16,8 @@ class ReflectivityDataGenerator:
         q (array, optional): Custom q-values for the reflectivity calculation.
         name (str): Identifier for the dataset.
         """
+        first = np.random.random_integers(1,6)
+        second = np.random.random_integers(1,6)
         self.parameters = [
             dict(i=0, par='roughness', bounds=[0, 5]),
             dict(i=1, par='sld', bounds=[3.0, 3.9]),
@@ -89,7 +91,9 @@ class ReflectivityDataGenerator:
     def compute_reflectivity(self):
         print("Computing reflectivity")
         self._pars_array = self.to_model_parameters(self._train_pars)
-        for p in self._pars_array:
+
+        from tqdm.auto import tqdm
+        for p in tqdm(self._pars_array,desc="Processing reflectivity curves"):
             _desc = self.get_model_description(p)
             r, z, sld = self.calculate_reflectivity()
             self._refl_array.append(r)

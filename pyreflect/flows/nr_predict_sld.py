@@ -1,10 +1,10 @@
+from click.core import batch
+
 from pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator
 from pyreflect.input.data_processor import NRSLDDataProcessor
-from pyreflect.models.config import NRSLDCurvesGeneratorParams, NRSLDModelTrainerParams
-from pyreflect.models.nr_sld_predictor.config import DEVICE
-from pyreflect.models.nr_sld_predictor.inference import predict_sld
-from pyreflect.models.nr_sld_predictor.train import train_pipeline
-from pyreflect.models.nr_sld_predictor.model import CNN
+from pyreflect.models.config import DEVICE, NRSLDCurvesGeneratorParams, NRSLDModelTrainerParams
+from pyreflect.models.cnn import CNN
+from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
 
 from typing import List
 import numpy as np
@@ -21,36 +21,34 @@ def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)-> None:
         dir (str): Directory where the files will be saved.
 
     """
-    for first in range(1, 6):
-        for second in range(1, 6):
-            # print(first, second)
-            m = ReflectivityDataGenerator(first, second)
-            m.generate(params.num_curves)
-            pars, train_data = m.get_preprocessed_data()
 
-            for index in range(len(m._smooth_array)):
-                min_x = min(m._smooth_array[index][0])
-                for i in range(len(m._smooth_array[index][0])):
-                    m._smooth_array[index][0][i] -= min_x
+    m = ReflectivityDataGenerator()
+    m.generate(params.num_curves)
+    pars, train_data = m.get_preprocessed_data()
 
-            settingUp, SLDSet = [], []
-            for i in range(len(m._smooth_array)):
-                settingUp.append(np.array([m.q, m._refl_array[i]]))
-                SLDSet.append(np.array(m._smooth_array[i]))
+    for index in range(len(m._smooth_array)):
+        min_x = min(m._smooth_array[index][0])
+        for i in range(len(m._smooth_array[index][0])):
+            m._smooth_array[index][0][i] -= min_x
 
-            totalStack = np.stack(settingUp) # processed NR
-            totalParams = np.stack(SLDSet)  # processed SLD
+    settingUp, SLDSet = [], []
+    for i in range(len(m._smooth_array)):
+        settingUp.append(np.array([m.q, m._refl_array[i]]))
+        SLDSet.append(np.array(m._smooth_array[i]))
 
-            print(f"processed NR shape:{totalStack.shape}\n")
-            print(f"processed SLD shape:{totalParams.shape}")
+    totalStack = np.stack(settingUp) # processed NR
+    totalParams = np.stack(SLDSet)  # processed SLD
 
-            np.save(params.mod_sld_file, totalParams)
-            np.save(params.mod_nr_file, totalStack)
+    print(f"processed NR shape:{totalStack.shape}\n")
+    print(f"processed SLD shape:{totalParams.shape}")
 
-            typer.echo(f"NR SLD generated curves saved at: \n\
-                       mod sld file: {params.mod_sld_file}\n\
-                        mod nr file: {params.mod_nr_file}")
-            return None
+    np.save(params.mod_sld_file, totalParams)
+    np.save(params.mod_nr_file, totalStack)
+
+    typer.echo(f"NR SLD generated curves saved at: \n\
+               mod sld file: {params.mod_sld_file}\n\
+                mod nr file: {params.mod_nr_file}")
+    return None
 
 def load_nr_sld_model(model_path):
     model = CNN().to(DEVICE)
@@ -59,33 +57,76 @@ def load_nr_sld_model(model_path):
     return model
 
 def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)-> None:
+    """
+    :param params:
+    :param auto_save:
+    :return:
+    :raise FileNotFoundError:
+    """
     data_processor = NRSLDDataProcessor(params.nr_file,params.sld_file)
     data_processor.load_data()
 
-    # train model
-    model = train_pipeline(data_processor.nr_arr, data_processor.sld_arr)
+    trainer = NRSLDModelTrainer(
+        data_processor=data_processor,
+        layers=params.layers,
+        batch_size=params.batch_size,
+        epochs=params.epochs,
+    )
 
-    if auto_save:
+    # training
+    model = trainer.train_pipeline()
+
     # save model
+    if auto_save:
         to_be_saved_model_path = params.model_path
         torch.save(model.state_dict(), to_be_saved_model_path)
         typer.echo(f"NR predict SLD trained CNN model saved at: {to_be_saved_model_path}")
+
     return model
 
-def predict_sld_from_nr(model, nr_file)->List[float]:
-    processor = NRSLDDataProcessor(nr_file_path=nr_file)
+def predict_sld_from_nr(model, nr_file)->np.ndarray:
+    """
+        Predicts SLD profiles from given NR curves using a trained model.
 
-    #load data into nr_arr
-    processor.load_data()
+        Args:
+            model (torch.nn.Module): Trained PyTorch model.
+            nr_file (str): Path to the NR file to process.
+
+        Returns:
+            np.ndarray: Predicted SLD curves.
+    """
+    try:
+        processor = NRSLDDataProcessor(nr_file_path=nr_file)
+        # load data into nr_arr
+        processor.load_data()
+
+    except FileNotFoundError as e:
+        typer.echo(e)
+        raise typer.Exit()
 
     processor.normalize_nr()
 
     typer.echo(f"Processed NR shape:{processor.nr_arr.shape}\n")
 
-    #Remove wave vector x axis of NR
+    #Remove wave vector (x channel) of NR
     reshaped_nr_curves = processor.reshape_nr_to_single_channel()
 
+    # Stack all curves into a batch for efficient model inference
+    reshaped_nr_curves = np.stack(reshaped_nr_curves)
+
     #Prediction
-    predicted_sld_curves = [predict_sld(model, curve) for curve in reshaped_nr_curves]
+    predicted_sld_curves = _predict(model, reshaped_nr_curves)
+
+    typer.echo(f"Prediction SLD shape: {predicted_sld_curves.shape}")
 
     return predicted_sld_curves
+
+
+def _predict(model, X_batch:np.ndarray)->np.ndarray:
+    model.eval().to(DEVICE)
+    X_batch = torch.tensor(X_batch, dtype=torch.float32).to(DEVICE)
+
+    with torch.no_grad():
+        y = model(X_batch)
+
+    return y.cpu().numpy()

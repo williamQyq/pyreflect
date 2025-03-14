@@ -37,6 +37,8 @@ INIT_YAML_CONTENT = f"""\
                 sld_curves_poly: data/curves/sld_curves_poly.npy #generated sld curves for training
             
             models:
-                model: data/curves/trained_nr_sld_model.pth # Trained CNN Model
-                num_curves: 100 #number of generated curves for training 
+                model: data/curves/trained_nr_sld_model.pth # Path to save and load the CNN model
+                num_curves: 100 # Number of generated curves for training 
+                epochs: 1 # CNN training epochs
+                batch_size: 32 # Batch size for training
         """

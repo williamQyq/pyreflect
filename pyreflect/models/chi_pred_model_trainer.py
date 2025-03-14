@@ -1,13 +1,9 @@
 import torch
 import pandas as pd
 import pyreflect.models.autoencoder as ae
+from .config import DEVICE as device
 
-
-# Set processing device
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-print(f'Selected device: {device}')
-
-class ModelTrainer:
+class ChiPredModelTrainer:
     def __init__(self, autoencoder, mlp, data_processor, batch_size, ae_epochs, mlp_epochs, loss_fn, latent_dim,
                  num_params):
         self.autoencoder = autoencoder

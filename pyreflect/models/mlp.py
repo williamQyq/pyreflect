@@ -2,8 +2,7 @@
 import numpy as np
 import torch
 from torch import nn
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+from .config import DEVICE
 
 # Defining a Multilayer Perceptron, MLP.
 class MLP(nn.Module):
@@ -44,8 +43,8 @@ def train(model, train_loader, val_loader, epochs, loss_fn):
     for epoch in range(epochs):
         shot_loss = []
         for data, label in train_loader:
-            input = data.view(data.size(0), -1).to(device)
-            label = label.to(device)
+            input = data.view(data.size(0), -1).to(DEVICE)
+            label = label.to(DEVICE)
             opt.zero_grad()
             output = model(input)
             loss = loss_fn(output, label)
@@ -59,8 +58,8 @@ def train(model, train_loader, val_loader, epochs, loss_fn):
         with torch.no_grad():
             val_shot_loss = []
             for data, label in val_loader:
-                input = data.view(data.size(0), -1).to(device)
-                label = label.to(device)
+                input = data.view(data.size(0), -1).to(DEVICE)
+                label = label.to(DEVICE)
                 output = model(input)
                 loss = loss_fn(output, label)
                 val_shot_loss.append(loss.item())

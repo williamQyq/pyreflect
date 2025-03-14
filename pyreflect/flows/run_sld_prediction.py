@@ -29,15 +29,16 @@ def run_sld_prediction(root:Path,config:dict):
             raise typer.Exit()
 
     # Load model
+    typer.echo("Loading NR SLD model...")
     model = load_nr_sld_model(model_path)
-    typer.echo("Loaded trained SLD model.")
 
     # Perform prediction
     experimental_nr_file = root / config["nr_predict_sld"]["file"]["experimental_nr_file"]
     if not experimental_nr_file.exists():
-        msg = f"⚠️  Error: The specified experimental NR file does not exist.\n"
+        msg = f"\n\n⚠️  Error: The experimental NR file does not exist.\n"
         msg += "Please update the configuration and provide a valid NR file for prediction."
-        raise FileNotFoundError(msg)
+        typer.echo(msg)
+        raise typer.Exit()
 
     typer.echo("Running SLD Prediction...")
     predicted_sld = predict_sld_from_nr(model, experimental_nr_file)

@@ -5,8 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # set processing device
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+from .config import DEVICE as device
 
 # Encoder class, takes in input data dimension and desired latent space size
 class Encoder(nn.Module):

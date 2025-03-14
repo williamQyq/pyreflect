@@ -107,7 +107,7 @@ class NRSLDDataProcessor(DataProcessor):
             self.sld_arr = np.load(self.sld_file_path)
 
         if self.nr_file_path is None and self.sld_file_path is None:
-            raise ValueError("At least one of nr_file_path or sld_file_path must be provided.")
+            raise FileNotFoundError("At least one of nr_file_path or sld_file_path must be provided.")
 
 
     def normalize(self, curves):

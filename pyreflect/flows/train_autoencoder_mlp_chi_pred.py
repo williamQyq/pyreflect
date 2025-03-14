@@ -1,5 +1,5 @@
 from pyreflect.input import SLDChiDataProcessor
-from pyreflect.models.chi_pred_model_trainer import ModelTrainer
+from pyreflect.models.chi_pred_model_trainer import ChiPredModelTrainer as ModelTrainer
 from pyreflect.models import mlp, autoencoder as ae
 from pyreflect.models.config import ChiPredTrainingParams
 import torch

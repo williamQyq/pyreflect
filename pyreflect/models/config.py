@@ -4,6 +4,7 @@ import torch
 from pyreflect.config.errors import *
 
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+print(f'Selected device for model training: {DEVICE}')
 
 
 def _resolve_file(root: str | Path, file_path: str | None):
@@ -97,8 +98,9 @@ class NRSLDModelTrainerParams:
     model_path: Path = None
     nr_file: Path = None
     sld_file: Path = None
-    # batch_size: int = None
-    # epochs: int = None
+    batch_size: int = None
+    epochs: int = None
+    layers: int = None
     # learning_rate: float = None
     _config: dict = field(default_factory=dict)
 
@@ -109,16 +111,19 @@ class NRSLDModelTrainerParams:
 
             try:
                 root = Path(self._config["root"])
-                self.model_path = root / Path(nr_section["models"]["model"])
+                # path to save the generated data file and model
+                self.model_path = _resolve_file(root,nr_section["models"]["model"])
                 self.nr_file = _resolve_file(root, nr_section["file"]["nr_curves_poly"])
                 self.sld_file = _resolve_file(root, nr_section["file"]["sld_curves_poly"])
 
+                #file must exist
                 _validate_file(self.nr_file)
                 _validate_file(self.sld_file)
-                # # Model training parameters
-                # self.batch_size = nr_section["models"].get("batch_size", 32)
-                # self.epochs = nr_section["models"].get("epochs", 50)
-                # self.learning_rate = nr_section["models"].get("learning_rate", 0.001)
+
+                # Model training parameters
+                self.batch_size = nr_section["models"].get("batch_size", 32)
+                self.epochs = nr_section["models"].get("epochs", 1)
+                self.layers = nr_section["models"].get("layers", 12)
 
             except KeyError as e:
                 raise ConfigMissingKeyError(f"Missing key in NRSLDModelTrainerParams: {e}")
