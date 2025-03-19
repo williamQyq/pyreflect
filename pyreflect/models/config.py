@@ -71,7 +71,8 @@ class ChiPredTrainingParams:
 class NRSLDCurvesGeneratorParams:
     mod_nr_file: str | Path = None
     mod_sld_file: str | Path = None
-    num_curves: int = 100
+    num_curves: int = None
+    num_film_layers: int = None
     _config: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -84,7 +85,7 @@ class NRSLDCurvesGeneratorParams:
                 self.mod_nr_file = _resolve_file(root, nr_section["file"]["nr_curves_poly"])
                 self.mod_sld_file = _resolve_file(root, nr_section["file"]["sld_curves_poly"])
                 self.num_curves = nr_section["models"].get("num_curves", self.num_curves)
-
+                self.num_film_layers = nr_section["models"].get("num_film_layers", self.num_film_layers)
             except KeyError as e:
                 raise ConfigMissingKeyError(f"Missing key in NRSLDCurvesGeneratorParams: {e}")
 

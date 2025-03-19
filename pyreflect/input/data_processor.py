@@ -12,7 +12,8 @@ class DataProcessor:
         torch.manual_seed(seed)
         np.random.seed(seed)
 
-    def split_arrays(self, X, y, size_split=0.8):
+    @staticmethod
+    def split_arrays(X, y, size_split=0.8):
         """
         Splits the dataset into training, validation, and test sets.
         """
@@ -21,12 +22,15 @@ class DataProcessor:
 
         return [crv_tr, chi_tr, crv_val, chi_val, crv_tst, chi_tst]
 
-    def convert_tensors(self,list_arrays):
+    @staticmethod
+    def convert_tensors(list_arrays):
         ## Convert to tensors
         tensor_arrays = [torch.from_numpy(array).float() for array in list_arrays]
+
         return tensor_arrays
 
-    def get_dataloaders(self, xtrain, ytrain, xval, yval, xtest, ytest, batch_size=32):
+    @staticmethod
+    def get_dataloaders(xtrain, ytrain, xval, yval, xtest, ytest, batch_size=32):
         """
         Converts split datasets into PyTorch dataloaders.
         """
@@ -109,11 +113,12 @@ class NRSLDDataProcessor(DataProcessor):
         if self.nr_file_path is None and self.sld_file_path is None:
             raise FileNotFoundError("At least one of nr_file_path or sld_file_path must be provided.")
 
-
-    def normalize(self, curves):
+    @classmethod
+    def normalize(cls, curves):
         """
         Normalizes curves
         """
+        curves = np.array(curves)
 
         # Separate x and y components
         x_points, y_points = curves[:, 0, :], curves[:, 1, :]
@@ -132,11 +137,11 @@ class NRSLDDataProcessor(DataProcessor):
         """Normalizes NR curves."""
         # Reflectivity decreases exponentially, log transformation compress large range
         curves_nr = np.log10(np.maximum(self._nr_arr, 1e-8))  # Prevent log(0) issues
-        return self.normalize(curves_nr)
+        return self.__class__.normalize(curves_nr)
 
     def normalize_sld(self):
         """Normalizes SLD curves."""
-        return self.normalize(self._sld_arr)
+        return self.__class__.normalize(self._sld_arr)
 
     def reshape_nr_to_single_channel(self,nr_data:np.ndarray)->np.ndarray:
         """

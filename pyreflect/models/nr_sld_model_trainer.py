@@ -1,3 +1,5 @@
+from click.core import batch
+
 from pyreflect.input import NRSLDDataProcessor
 
 from .config import DEVICE
@@ -5,13 +7,16 @@ import torch
 from .cnn import CNN
 import numpy as np
 
+from .model_trainer import ModelTrainer
+
 # Training parameters
 LEARNING_RATE = 2.15481e-05
 WEIGHT_DECAY = 2.6324e-05
 SPLIT_RATIO = 0.8
 
-class NRSLDModelTrainer:
+class NRSLDModelTrainer(ModelTrainer):
     def __init__(self, data_processor:NRSLDDataProcessor,layers, batch_size, epochs):
+        super().__init__(data_processor, batch_size = batch_size, epochs = epochs)
         self.model = CNN(layers).to(DEVICE) #model
         self.X = data_processor.normalize_nr() # normalized nr curves
         self.y = data_processor.normalize_sld() # normalized sld curves
@@ -43,31 +48,4 @@ class NRSLDModelTrainer:
 
         return self.model
 
-    def train_model(self, model, train_loader, optimizer, loss_fn):
-        model.train().to(DEVICE)
-        total_loss = 0
-
-        for data, label in train_loader:
-            data, label = data.to(DEVICE), label.to(DEVICE)
-            optimizer.zero_grad()
-            output = model(data)
-            loss = loss_fn(output, label)
-            loss.backward()
-            optimizer.step()
-            total_loss += loss.item()
-
-        return total_loss / len(train_loader)
-
-    def validate_model(self, model, valid_loader, loss_fn):
-        model.eval().to(DEVICE)
-        total_loss = 0
-
-        with torch.no_grad():
-            for data, label in valid_loader:
-                data, label = data.to(DEVICE), label.to(DEVICE)
-                output = model(data)
-                loss = loss_fn(output, label)
-                total_loss += loss.item()
-
-        return total_loss / len(valid_loader)
 

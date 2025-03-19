@@ -32,13 +32,15 @@ INIT_YAML_CONTENT = f"""\
         ### ⚙️ NR predict SLD profile settings ###
         nr_predict_sld:
             file:
-                experimental_nr_file: data/curves/experimental_nr_curves.npy # Experimental nr data for sld prediction
-                nr_curves_poly: data/curves/nr_curves_poly.npy   #generated nr curves for training
-                sld_curves_poly: data/curves/sld_curves_poly.npy #generated sld curves for training
-            
+                experimental_nr_file: data/curves/experimental_nr_curves.npy    # Experimental nr data for sld prediction
+                nr_curves_poly: data/curves/nr_curves_poly.npy   #Generated nr curves for training
+                sld_curves_poly: data/curves/sld_curves_poly.npy    #Generated sld curves for training
+                reflectivity_model_bounds: data/curves/reflectivity_model_bounds.json   #Bounds of the reflectivity model properties
+                
             models:
                 model: data/curves/trained_nr_sld_model.pth # Path to save and load the CNN model
-                num_curves: 50000 # Number of generated curves for training 
+                num_film_layers: 6  # Number of film layers to generate the simulated physical model
+                num_curves: 50000   # Number of generated curves for training 
                 epochs: 10 # CNN training epochs
                 batch_size: 32 # Batch size for training
         """

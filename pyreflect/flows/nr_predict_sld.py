@@ -1,4 +1,4 @@
-from pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator
+from pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator, ReflectivityModel
 from pyreflect.input.data_processor import NRSLDDataProcessor
 from pyreflect.models.config import DEVICE, NRSLDCurvesGeneratorParams, NRSLDModelTrainerParams
 from pyreflect.models.cnn import CNN
@@ -8,8 +8,9 @@ import numpy as np
 import torch
 import typer
 from pathlib import Path
+from typing import Tuple
 
-def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)-> None:
+def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)->Tuple[np.ndarray, np.ndarray]:
 
     """
         Generates and saves reflectivity and SLD curve data.
@@ -19,34 +20,18 @@ def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)-> None:
         dir (str): Directory where the files will be saved.
 
     """
+    phy_film_model = ReflectivityModel(params.num_film_layers)
+    m = ReflectivityDataGenerator(model=phy_film_model)
+    processed_nr, processed_sld_profile = m.generate_curves(params.num_curves)
 
-    m = ReflectivityDataGenerator()
-    m.generate(params.num_curves)
-    pars, train_data = m.get_preprocessed_data()
-
-    for index in range(len(m._smooth_array)):
-        min_x = min(m._smooth_array[index][0])
-        for i in range(len(m._smooth_array[index][0])):
-            m._smooth_array[index][0][i] -= min_x
-
-    settingUp, SLDSet = [], []
-    for i in range(len(m._smooth_array)):
-        settingUp.append(np.array([m.q, m._refl_array[i]]))
-        SLDSet.append(np.array(m._smooth_array[i]))
-
-    totalStack = np.stack(settingUp) # processed NR
-    totalParams = np.stack(SLDSet)  # processed SLD
-
-    print(f"processed NR shape:{totalStack.shape}\n")
-    print(f"processed SLD shape:{totalParams.shape}")
-
-    np.save(params.mod_sld_file, totalParams)
-    np.save(params.mod_nr_file, totalStack)
+    np.save(params.mod_sld_file, processed_sld_profile)
+    np.save(params.mod_nr_file, processed_nr)
 
     typer.echo(f"NR SLD generated curves saved at: \n\
                mod sld file: {params.mod_sld_file}\n\
                 mod nr file: {params.mod_nr_file}")
-    return None
+
+    return processed_nr, processed_sld_profile
 
 def load_nr_sld_model(model_path):
     model = CNN().to(DEVICE)
