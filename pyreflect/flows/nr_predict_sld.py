@@ -47,10 +47,11 @@ def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)->
     :raise FileNotFoundError:
     """
     data_processor = NRSLDDataProcessor(params.nr_file,params.sld_file)
-    data_processor.load_data()
 
     trainer = NRSLDModelTrainer(
         data_processor=data_processor,
+        X=data_processor.normalize_nr(),
+        y=data_processor.normalize_sld(),
         layers=params.layers,
         batch_size=params.batch_size,
         epochs=params.epochs,

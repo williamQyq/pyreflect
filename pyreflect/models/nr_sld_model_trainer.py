@@ -5,7 +5,6 @@ from pyreflect.input import NRSLDDataProcessor
 from .config import DEVICE
 import torch
 from .cnn import CNN
-import numpy as np
 
 from .model_trainer import ModelTrainer
 
@@ -15,11 +14,11 @@ WEIGHT_DECAY = 2.6324e-05
 SPLIT_RATIO = 0.8
 
 class NRSLDModelTrainer(ModelTrainer):
-    def __init__(self, data_processor:NRSLDDataProcessor,layers, batch_size, epochs):
+    def __init__(self, data_processor:NRSLDDataProcessor,X,y,layers, batch_size, epochs):
         super().__init__(data_processor, batch_size = batch_size, epochs = epochs)
         self.model = CNN(layers).to(DEVICE) #model
-        self.X = data_processor.normalize_nr() # normalized nr curves
-        self.y = data_processor.normalize_sld() # normalized sld curves
+        self.X = X
+        self.y = y
         self.data_processor = data_processor
         self.layers = layers
         self.batch_size = batch_size

@@ -2,9 +2,9 @@ import numpy as np
 import torch
 import pandas as pd
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+from pyreflect.models.config import DEVICE as device
 
-def run_model_prediction(percep, autoencoder, expt_arr, sld_arr, num_params):
+def run_model_prediction(percep, autoencoder, X:np.ndarray):
     """
     Runs the trained Autoencoder and MLP model on experimental data
     to generate latent representations and chi parameter predictions.
@@ -20,19 +20,22 @@ def run_model_prediction(percep, autoencoder, expt_arr, sld_arr, num_params):
     Returns:
     - df_expt_labels: DataFrame containing predicted latent variables and chi parameters.
     """
+    X = np.array(X)  # ensure it's a NumPy array
+    if X.ndim == 3:
+        # From (batch, 2, features) → (batch, 2 * features)
+        X = X.reshape(X.shape[0], -1)
+    elif X.ndim == 2 and X.shape[0] == 2:
+        X = X.reshape(1, -1)
+    else:
+        raise ValueError('X must be either 3 or 2 dimensional.')
 
-    # Interpolate the experimental curve using the first SLD curve
-    int_expt = np.interp(sld_arr[0][0], expt_arr[0], expt_arr[1])
-    expt_arr_n = np.asarray([[expt_arr[0], expt_arr[1]]])
-
-    # Convert experimental curve to tensor
-    expt_curve = torch.from_numpy(expt_arr_n[0]).flatten().float().to(device)
+    print(f"\nX shape for model training: {X.shape}")
+    # Convert to torch tensor
+    expt_curve = torch.tensor(X, dtype=torch.float32).to(device)
 
     # Set models to evaluation mode
     autoencoder.eval()
     percep.eval()
-
-    expt_labels = []
 
     with torch.no_grad():
         # Encode the experimental data
@@ -44,17 +47,15 @@ def run_model_prediction(percep, autoencoder, expt_arr, sld_arr, num_params):
     encoded_expt = encoded_expt.cpu().numpy()
     out_label = out_label.cpu().numpy()
 
-    # Store latent variables
-    expt_label = {f"l{i+1}": enc for i, enc in enumerate(encoded_expt)}
+    latent = encoded_expt[0]
+    chis = out_label[0]
 
-    # Store predicted chi parameters
-    for i in range(num_params):
-        label_index = f'chi{i+1}'
-        expt_label[label_index] = out_label[i]
+    # Build a dictionary of values
+    row = {**{f"l{i + 1}": val for i, val in enumerate(latent)},
+           **{f"chi{i + 1}": val for i, val in enumerate(chis)}}
 
-    expt_labels.append(expt_label)
+    # Create DataFrame from a list of dicts
+    df_chi = pd.DataFrame([row])
 
-    # Convert to DataFrame
-    df_expt_labels = pd.DataFrame(expt_labels)
-
-    return df_expt_labels
+    #chi label dataframe and latent variables
+    return df_chi , decoded_expt

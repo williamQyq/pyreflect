@@ -1,52 +1,45 @@
-from pyreflect.input import SLDChiDataProcessor
+from pyreflect.input import DataProcessor
 from pyreflect.models.chi_pred_model_trainer import ChiPredModelTrainer as ModelTrainer
 from pyreflect.models import mlp, autoencoder as ae
-from pyreflect.models.config import ChiPredTrainingParams
+from pyreflect.models.config import DEVICE
 import torch
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+def run_model_training(
+        X, y,
+        latent_dim, batch_size,
+        ae_epochs, mlp_epochs):
 
-def run_model_training(config: ChiPredTrainingParams):
-    print(f"Processing data with:")
-    print(f"  - mod_expt_file: {config.mod_expt_file}")
-    print(f"  - mod_sld_file: {config.mod_sld_file}")
-    print(f"  - mod_params_file: {config.mod_params_file}")
-    print(f"  - batch_size: {config.batch_size}")
+    sld_arr = X
+    params_arr = y
 
-    # init processor
-    data_processor = SLDChiDataProcessor(config.mod_expt_file, config.mod_sld_file, config.mod_params_file)
-    # load data from file path
-    data_processor.load_data()
-    # remove flatten data and normalize
-    data_processor.preprocess_data()
-
-    #Fix Error for mat mult in VAE
-    sld_arr_cut = data_processor.sld_arr
-    sld_arr_cut_flat = sld_arr_cut.reshape(sld_arr_cut.shape[0], -1)
+    #Flatten for VAE takes shape [batch_size, 2 * features]
+    sld_arr_cut_flat = sld_arr.reshape(sld_arr.shape[0], -1)
 
     # training, validation, testing arrays
-    list_arrays = data_processor.split_arrays(sld_arr_cut_flat, data_processor.params_arr, size_split=0.7)
-    tensor_arrays = data_processor.convert_tensors(list_arrays)
+    list_arrays = DataProcessor.split_arrays(sld_arr_cut_flat, params_arr, size_split=0.7)
+    tensor_arrays = DataProcessor.convert_tensors(list_arrays)
     #train val data tensors from data processing
-    tr_data, val_data,tst_data, tr_load, val_load,tst_load = data_processor.get_dataloaders(*tensor_arrays,config.batch_size)
+    tr_data, val_data,tst_data, tr_load, val_load,tst_load = DataProcessor.get_dataloaders(*tensor_arrays,batch_size)
 
-    dim_list = [('l' + str(i + 1)) for i in range(config.latent_dim)]
+    #The first sample input
+    x,_ = tr_data[0]
 
-    ## Dimension of the input curves
-    in_d1 = 2
-    in_d2 = 72
+    #The linear dimension of first input
+    input_dim = x.numel()
+
+    #number of Chi parameters
+    num_params = params_arr.shape[1]
 
     # Initialize Model Trainer
     trainer = ModelTrainer(
-        autoencoder=ae.VariationalAutoencoder(144, config.latent_dim).to(device),
-        mlp=mlp,
-        data_processor=data_processor,
-        batch_size=config.batch_size,
-        ae_epochs=config.ae_epochs,
-        mlp_epochs= config.mlp_epochs,
+        autoencoder=ae.VariationalAutoencoder(input_dim, latent_dim).to(DEVICE),
+        mlp=mlp.deep_MLP(latent_dim,num_params).to(DEVICE),
+        batch_size=batch_size,
+        ae_epochs=ae_epochs,
+        mlp_epochs= mlp_epochs,
         loss_fn=torch.nn.MSELoss(),
-        latent_dim=config.latent_dim,
-        num_params=data_processor.num_params,
+        latent_dim=latent_dim,
+        num_params=num_params,
     )
 
     # Train Autoencoder
@@ -62,8 +55,8 @@ def run_model_training(config: ChiPredTrainingParams):
     trainer.train_mlp(mlp_tr_load, mlp_val_load)
 
     # Evaluate MLP on Training and Testing Data
-    df_train_samples = trainer.evaluate_model(mlp_tr_data, trainer.percep)
-    df_test_samples = trainer.evaluate_model(mlp_tst_data, trainer.percep)
+    # df_train_samples = trainer.evaluate_model(mlp_tr_data, trainer.mlp)
+    df_test_samples = trainer.evaluate_model(mlp_tst_data, trainer.mlp)
 
     # Calculate Prediction Errors
     df_l2_err = trainer.calculate_error(df_test_samples)
@@ -72,5 +65,5 @@ def run_model_training(config: ChiPredTrainingParams):
     print("\nFinal Mean Prediction Errors:")
     print(df_l2_err)
 
-    return trainer.percep,trainer.autoencoder, data_processor
+    return trainer.mlp,trainer.autoencoder
 

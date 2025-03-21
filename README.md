@@ -2,7 +2,12 @@
 A Python package for **Chi parameters prediction** from **SLD profile data** and **SLD prediction from NR curves** using machine learning.
 
 ## **Overview**
-NR-SCFT-ML is a PyPI package designed to preprocess Neutron Reflectivity (NR) data, train an Autoencoder + MLP model, and predict Chi parameters. The tool simplifies data preparation, training, and inference with just two commands. A quick CLI is provided for fast neutron reflectivity analysis.
+**NR-SCFT-ML** is a PyPI package for efficient processing and analysis of Neutron Reflectivity (NR) data. It provides a streamlined pipeline for:
+
+- Preprocessing NR datasets  
+- Predicting SLD Profile by training a CNN
+- Predicting **Chi** parameters by training a combined Autoencoder and MLP model.
+
 ## **Quick Start Guide**
 
 ### 🧑🏻‍💻Example Notebooks ###
@@ -26,3 +31,14 @@ python -m pyreflect run --enable-chi-prediction
 ```bash
 python -m pyreflect run --enable-sld-prediction
 ```
+
+## Credits
+
+This project builds on work by:
+- Prof. Miguel Fuentes-Cabrera [NR-SCFT-ML](https://github.com/miguel-fc/NR-SCFT-ML)
+- Dr. Rajeev Kumar
+- Brian Qu ([NR-SLD-CNN](https://github.com/BBQ591/NR-SLD-CNN))
+
+## Author
+
+- Yuqing Qiao (William) – Maintainer and developer of this PyPI package

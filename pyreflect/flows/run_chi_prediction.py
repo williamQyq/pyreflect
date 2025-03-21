@@ -4,6 +4,9 @@ from pyreflect.models.config import ChiPredTrainingParams
 import typer
 import pandas as pd
 
+from ..input import SLDChiDataProcessor
+
+
 def run_chi_prediction(root,config):
 
     # Extract required parameters else missing key error.
@@ -14,12 +17,25 @@ def run_chi_prediction(root,config):
         typer.echo(e)
         raise typer.Exit()
 
-    mlp, autoencoder, data_processor = run_model_training(chi_pred_params)
-    df_predictions = run_model_prediction(mlp,
+    # init processor
+    data_processor = SLDChiDataProcessor(chi_pred_params.mod_expt_file,
+                                         chi_pred_params.mod_sld_file,
+                                         chi_pred_params.mod_params_file)
+
+    data_processor.load_data()
+
+    # remove flatten sld and normalize chi parameters and sld arr
+    sld_arr, params_arr = data_processor.preprocess_data()
+
+    mlp, autoencoder = run_model_training(X=sld_arr,y=params_arr,
+        latent_dim= chi_pred_params.latent_dim,
+        batch_size=chi_pred_params.batch_size,
+        ae_epochs=chi_pred_params.ae_epochs,
+        mlp_epochs=chi_pred_params.mlp_epochs,
+    )
+    df_predictions,reconstructed_sld = run_model_prediction(mlp,
                                           autoencoder,
-                                          data_processor.expt_arr,
-                                          data_processor.sld_arr,
-                                          data_processor.num_params)
+                                          X=data_processor.expt_arr)
 
     typer.echo("\nFinal Chi Prediction:")
-    typer.echo(pd.DataFrame(df_predictions))
+    typer.echo(df_predictions)

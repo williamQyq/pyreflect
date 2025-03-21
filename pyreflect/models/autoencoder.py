@@ -72,7 +72,7 @@ class Decoder(nn.Module):
     def __init__(self, init_size, lat_size):
         super(Decoder, self).__init__()
 
-        # Create layers of neurons and activation fucntions
+        # Create layers of neurons and activation functions
         self.layers = nn.Sequential(
             nn.Linear(lat_size, 72),
             nn.ReLU(),
@@ -116,7 +116,6 @@ class VariationalAutoencoder(nn.Module):
         x = x.to(device)
         z = self.encoder(x)
         return self.decoder(z)
-
 
 # Regular AE training
 def train(model, train_loader, val_loader, epochs, loss_fn):

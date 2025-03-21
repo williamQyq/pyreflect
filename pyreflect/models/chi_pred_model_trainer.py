@@ -1,14 +1,15 @@
 import torch
 import pandas as pd
 import pyreflect.models.autoencoder as ae
+from pyreflect.input.data_processor import DataProcessor
+from . import mlp as mlp_module
 from .config import DEVICE as device
 
 class ChiPredModelTrainer:
-    def __init__(self, autoencoder, mlp, data_processor, batch_size, ae_epochs, mlp_epochs, loss_fn, latent_dim,
+    def __init__(self, autoencoder, mlp, batch_size, ae_epochs, mlp_epochs, loss_fn, latent_dim,
                  num_params):
         self.autoencoder = autoencoder
         self.mlp = mlp
-        self.data_processor = data_processor
         self.batch_size = batch_size
         self.ae_epochs = ae_epochs
         self.mlp_epochs = mlp_epochs
@@ -85,13 +86,12 @@ class ChiPredModelTrainer:
             full_data_test[2], full_data_test[3]
         ]
 
-        return self.data_processor.get_dataloaders(*mlp_input_data, self.batch_size)
+        return DataProcessor.get_dataloaders(*mlp_input_data, self.batch_size)
 
     def train_mlp(self, mlp_tr_load, mlp_val_load):
         """Train the MLP model and store losses."""
         print("\nTraining MLP...")
-        self.percep = self.mlp.deep_MLP(self.latent_dim, self.num_params).to(device)
-        self.train_loss, self.val_loss = self.mlp.train(self.percep, mlp_tr_load, mlp_val_load, self.mlp_epochs,
+        self.train_loss, self.val_loss = mlp_module.train(self.mlp, mlp_tr_load, mlp_val_load, self.mlp_epochs,
                                                         self.loss_fn)
 
     def evaluate_model(self, mlp_data, model):

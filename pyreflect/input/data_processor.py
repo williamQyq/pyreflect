@@ -1,7 +1,9 @@
+from typing import List
+
 import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
-
+from sklearn.preprocessing import MinMaxScaler
 
 class DataProcessor:
     def __init__(self, seed=123):
@@ -44,6 +46,33 @@ class DataProcessor:
 
         return [train_dataset,valid_dataset,test_dataset,train_loader, valid_loader, test_loader]
 
+    @staticmethod
+    def normalize_xy_curves(data: List | np.ndarray, scale=(-1,1), apply_log=False)->np.stack:
+        """
+          Normalizes data (shape [samples,channel, features] to a given scale ([-1, 1] or [0, 1]).
+
+          Args:
+              data (np.ndarray): Input array (reflectivity R(q) or SLD).
+              scale (tuple): Target normalization range (default `[-1,1]`, set `(0,1)` if needed).
+              apply_log (bool): Whether to apply `log10` transformation (useful for reflectivity R(q)).
+
+          Returns:
+              np.stack: Normalized data.
+        """
+        # Convert to NumPy array if not already
+        data = np.array(data, dtype=np.float32)
+
+        if apply_log:
+            data = np.log10(data)
+
+        assert data.ndim == 3, f"Trying to normalize each channel independently but the data shape is {data.shape}."
+        scalers = [MinMaxScaler(feature_range=scale)for _ in range(data.shape[1])]
+
+        for I in range(data.shape[1]):
+            data[:,I,:] = scalers[I].fit_transform(data[:,I,:])
+
+        return data
+
 class SLDChiDataProcessor(DataProcessor):
     def __init__(self, expt_sld_file_path, sld_file_path, chi_params_file_path, seed=123):
         """
@@ -65,19 +94,24 @@ class SLDChiDataProcessor(DataProcessor):
         self.expt_arr = np.load(self.expt_sld_file_path)
         self.num_params = self.params_arr.shape[1]
 
+    @classmethod
+    def remove_flat_samples(cls, data_arr):
+        # Remove flat data
+        flat_data = []
+        for i in range(data_arr.shape[0]):
+            y_start = data_arr[i, 1, 0]
+            if data_arr[i, 1, 1] == y_start and data_arr[i, 1, 2] == y_start:
+                flat_data.append(i)
+
+        return np.delete(data_arr,flat_data,axis=0), flat_data
+
     def preprocess_data(self):
         """Cleans and normalizes data by removing flat and non-impact data."""
 
         assert self.sld_arr is not None or self.params_arr is not None and self.expt_arr is not None, "data not loaded."
 
         # Remove flat data
-        flat_data = []
-        for i in range(self.sld_arr.shape[0]):
-            y_start = self.sld_arr[i, 1, 0]
-            if self.sld_arr[i, 1, 1] == y_start and self.sld_arr[i, 1, 2] == y_start:
-                flat_data.append(i)
-
-        self.sld_arr = np.delete(self.sld_arr, flat_data, 0)
+        self.sld_arr,flat_data = self.remove_flat_samples(self.sld_arr)
         self.params_arr = np.delete(self.params_arr, flat_data, 0)
 
         # Remove non-impact data (chi1 range filter)
@@ -85,12 +119,13 @@ class SLDChiDataProcessor(DataProcessor):
         self.sld_arr = np.delete(self.sld_arr, bad_chi1, 0)
         self.params_arr = np.delete(self.params_arr, bad_chi1, 0)
 
-        # Normalize parameters
+        # Batch normalize chi parameters
         for i in range(self.params_arr.shape[1]):
             min_val, max_val = self.params_arr[:, i].min(), self.params_arr[:, i].max()
             if max_val > min_val:
                 self.params_arr[:, i] = ((self.params_arr[:, i] - min_val) * 2 / (max_val - min_val)) - 1
 
+        return self.sld_arr, self.params_arr
 
 class NRSLDDataProcessor(DataProcessor):
     def __init__(self, nr_file_path=None, sld_file_path=None, seed=123):
@@ -100,52 +135,28 @@ class NRSLDDataProcessor(DataProcessor):
         super().__init__(seed)
         self.nr_file_path = nr_file_path
         self.sld_file_path = sld_file_path
-        self._nr_arr = None
-        self._sld_arr = None
-
-    def load_data(self):
-        """Loads NR and SLD data."""
-        if self.nr_file_path:
-            self._nr_arr = np.load(self.nr_file_path)
-        if self.sld_file_path:
-            self._sld_arr = np.load(self.sld_file_path)
-
-        if self.nr_file_path is None and self.sld_file_path is None:
-            raise FileNotFoundError("At least one of nr_file_path or sld_file_path must be provided.")
-
-    @classmethod
-    def normalize(cls, curves):
-        """
-        Normalizes curves
-        """
-        curves = np.array(curves)
-
-        # Separate x and y components
-        x_points, y_points = curves[:, 0, :], curves[:, 1, :]
-
-        # Min-Max normalization
-        min_x, max_x = x_points.min(), x_points.max()
-        min_y, max_y = y_points.min(), y_points.max()
-
-        x_points = (x_points - min_x) / (max_x - min_x)
-        y_points = (y_points - min_y) / (max_y - min_y)
-
-        # Stack back to the original format (N, 2, M)
-        return np.stack([x_points, y_points], axis=1)
+        self._nr_arr = np.load(self.nr_file_path) if nr_file_path else None
+        self._sld_arr = np.load(self.sld_file_path) if sld_file_path else None
 
     def normalize_nr(self):
         """Normalizes NR curves."""
+        if not self._nr_arr:
+            raise FileNotFoundError(f"NR file not loaded from path:{self.nr_file_path}")
+
         # Reflectivity decreases exponentially, log transformation compress large range
-        curves_nr = np.log10(np.maximum(self._nr_arr, 1e-8))  # Prevent log(0) issues
-        return self.__class__.normalize(curves_nr)
+        return DataProcessor.normalize_xy_curves(self._nr_arr,scale=(0,1),apply_log=True)
 
     def normalize_sld(self):
         """Normalizes SLD curves."""
-        return self.__class__.normalize(self._sld_arr)
+        if not self._sld_arr:
+            raise FileNotFoundError(f"SLD File not loaded from path: {self.sld_file_path}")
+
+        return DataProcessor.normalize_xy_curves(self._sld_arr,scale=(0,1),apply_log=True)
 
     def reshape_nr_to_single_channel(self,nr_data:np.ndarray)->np.ndarray:
         """
         Reshapes NR data to (batch_size, 1, sequence_length) for CNN input.
+        Remove the momentum q range(y-axis).
 
         Returns:
         - reshaped_nr (numpy.ndarray): Reshaped NR data.
