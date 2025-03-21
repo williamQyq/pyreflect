@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 import typer
-from pyreflect.input import NRSLDDataProcessor
+from pyreflect.input import NRSLDDataProcessor, DataProcessor
 from scipy.interpolate import CubicSpline
 from refl1d.names import QProbe,Slab,SLD,Parameter,Experiment
 
@@ -143,6 +143,15 @@ class ReflectivityModel:
 
         return normalized_nr
 
+    @property
+    def refl_array(self):
+        return self._refl_array
+
+    @property
+    def smooth_array(self):
+        return self._smooth_array
+
+
 class ReflectivityDataGenerator:
     def __init__(self, model:ReflectivityModel):
         #Simulated physical model
@@ -159,30 +168,17 @@ class ReflectivityDataGenerator:
         self._train_pars = np.random.uniform(low=-1, high=1, size=[n, len(self.model.parameters)])
         self.model.compute_reflectivity(self._train_pars)
 
-        norm_nr = self.model.preprocess_nr(noise=None)
+        if self.model.refl_array is None:
+            raise ValueError("No reflectivity data generated")
 
-        processed_nr, processed_sld = self.process_curves(norm_nr,self.model._smooth_array)
+        norm_nr = self.model.preprocess_nr()
+        norm_sld = DataProcessor.normalize_xy_curves(self.model.smooth_array, scale=(0, 1))
 
-        print(f"processed NR shape:{processed_nr.shape}\n")
-        print(f"processed SLD shape:{processed_sld.shape}")
+        refl_arr = np.stack([np.array([self.model.q, refl]) for refl in norm_nr])
+        print(f"processed NR shape:{refl_arr.shape}\n")
+        print(f"processed SLD shape:{norm_sld.shape}")
 
-        return processed_nr, processed_sld
-
-    def process_curves(self,nr_arr, sld_profiles:List):
-
-        # Normalize SLD profiles
-        processed_sld = NRSLDDataProcessor.normalize(sld_profiles)
-
-        q_values = self.model.q
-        refl_curves = nr_arr
-
-        # Stack reflectivity data with q-values
-        refl_arr = np.stack([np.array([q_values, refl]) for refl in refl_curves])
-
-        typer.echo(f"processed NR shape:{refl_arr.shape}\n")
-        typer.echo(f"processed SLD shape:{processed_sld.shape}")
-
-        return refl_arr, processed_sld
+        return refl_arr, norm_sld
 
     def save(self, output_dir=''):
         np.save(os.path.join(output_dir, f"{self._config_name}_q_values"), self.q)

@@ -29,8 +29,8 @@ def run_sld_prediction(root:str | Path,config:dict):
             raise typer.Exit()
 
     # Load model
-    typer.echo("Loading NR SLD model...")
     model = load_nr_sld_model(model_path)
+    typer.echo("Loaded NR SLD model...")
 
     # Perform prediction
     experimental_nr_file = root / Path(config["nr_predict_sld"]["file"]["experimental_nr_file"])

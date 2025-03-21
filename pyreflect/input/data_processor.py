@@ -1,5 +1,5 @@
 from typing import List
-
+import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
@@ -135,12 +135,32 @@ class NRSLDDataProcessor(DataProcessor):
         super().__init__(seed)
         self.nr_file_path = nr_file_path
         self.sld_file_path = sld_file_path
-        self._nr_arr = np.load(self.nr_file_path) if nr_file_path else None
-        self._sld_arr = np.load(self.sld_file_path) if sld_file_path else None
+        self._nr_arr = None
+        self._sld_arr = None
+
+    def load_data(self,new_nr_file=None, new_sld_file=None):
+        """
+
+        :param new_nr_file:
+        :param new_sld_file:
+        :return:
+
+        :raise
+        - OSError
+        """
+        # Decide file paths: use new ones if provided, else use those from init
+        nr_path = new_nr_file if new_nr_file is not None else self.nr_file_path
+        sld_path = new_sld_file if new_sld_file is not None else self.sld_file_path
+
+        if nr_path:
+            self._nr_arr = np.load(nr_path)
+
+        if sld_path:
+            self._sld_arr = np.load(sld_path)
 
     def normalize_nr(self):
         """Normalizes NR curves."""
-        if not self._nr_arr:
+        if self._nr_arr is None:
             raise FileNotFoundError(f"NR file not loaded from path:{self.nr_file_path}")
 
         # Reflectivity decreases exponentially, log transformation compress large range
@@ -148,7 +168,7 @@ class NRSLDDataProcessor(DataProcessor):
 
     def normalize_sld(self):
         """Normalizes SLD curves."""
-        if not self._sld_arr:
+        if self._sld_arr is None:
             raise FileNotFoundError(f"SLD File not loaded from path: {self.sld_file_path}")
 
         return DataProcessor.normalize_xy_curves(self._sld_arr,scale=(0,1),apply_log=True)
