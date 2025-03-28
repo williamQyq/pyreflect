@@ -20,8 +20,9 @@ def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)->Tuple[np.ndarray,
         dir (str): Directory where the files will be saved.
 
     """
-    m = ReflectivityDataGenerator(model=ReflectivityModel(params.num_film_layers))
-    processed_nr, processed_sld_profile = m.generate_curves(params.num_curves)
+    m = ReflectivityDataGenerator(num_layers=params.num_film_layers)
+
+    processed_nr, processed_sld_profile = m.generate(params.num_curves)
 
     np.save(params.mod_sld_file, processed_sld_profile)
     np.save(params.mod_nr_file, processed_nr)
@@ -51,8 +52,8 @@ def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)->
     # NR-SLD curves are already normalized during generation
     trainer = NRSLDModelTrainer(
         data_processor=data_processor,
-        X=data_processor._nr_arr,
-        y=data_processor._sld_arr,
+        X=data_processor.normalize_nr(),
+        y=data_processor.normalize_sld(),
         layers=params.layers,
         batch_size=params.batch_size,
         epochs=params.epochs,
@@ -83,16 +84,15 @@ def predict_sld_from_nr(model, nr_file:str | Path)->np.ndarray:
     try:
         # Load data
         processor = NRSLDDataProcessor(nr_file_path=nr_file)
-        processor.load_data()
+        nr_arr,sld_arr = processor.load_data()
     except FileNotFoundError as e:
         typer.echo(e)
         raise typer.Exit()
 
-    # Normalization
-    normalized_nr_arr = processor.normalize_nr()
+    norm_nr = processor.normalize_nr()
 
     #Remove wave vector (x channel) of NR
-    reshaped_nr_curves = processor.reshape_nr_to_single_channel(normalized_nr_arr)
+    reshaped_nr_curves = processor.reshape_nr_to_single_channel(norm_nr)
 
     #Prediction
     predicted_sld_curves = _predict(model, reshaped_nr_curves)

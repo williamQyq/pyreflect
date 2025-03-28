@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 import torch
+import typer
+
 from pyreflect.config.errors import *
 
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -69,6 +71,7 @@ class ChiPredTrainingParams:
 
 @dataclass
 class NRSLDCurvesGeneratorParams:
+    root: str | Path = Path(".")
     mod_nr_file: str | Path = None
     mod_sld_file: str | Path = None
     num_curves: int = None
@@ -77,28 +80,35 @@ class NRSLDCurvesGeneratorParams:
 
     def __post_init__(self):
         """Extracts and validates required parameters from a nested YAML config."""
-        if isinstance(self._config, dict) and "nr_predict_sld" in self._config:
+        if self._config and "nr_predict_sld" in self._config:
             nr_section = self._config["nr_predict_sld"]
+            self.root = Path(self._config["root"])
 
             try:
-                root = Path(self._config["root"])
-                self.mod_nr_file = _resolve_file(root, nr_section["file"]["nr_curves_poly"])
-                self.mod_sld_file = _resolve_file(root, nr_section["file"]["sld_curves_poly"])
+                self.mod_nr_file = _resolve_file(self.root, nr_section["file"]["nr_curves_poly"])
+                self.mod_sld_file = _resolve_file(self.root, nr_section["file"]["sld_curves_poly"])
                 self.num_curves = nr_section["models"].get("num_curves", self.num_curves)
                 self.num_film_layers = nr_section["models"].get("num_film_layers", self.num_film_layers)
             except KeyError as e:
                 raise ConfigMissingKeyError(f"Missing key in NRSLDCurvesGeneratorParams: {e}")
 
         else:
-            raise ConfigMissingKeyError("nr_predict_sld section missing in config.")
+            self.root = Path(self.root)
+            # Direct input mode
+            self.mod_nr_file = _resolve_file(self.root,self.mod_nr_file)
+            self.mod_sld_file = _resolve_file(self.root,self.mod_sld_file)
+
+        typer.echo(f"To be saved NR file:{self.mod_nr_file}")
+        typer.echo(f"To be loaded SLD curves:{self.mod_sld_file}")
 
 
 @dataclass
 class NRSLDModelTrainerParams:
     """Handles parameters for training NR-SLD prediction models."""
-    model_path: Path = None
-    nr_file: Path = None
-    sld_file: Path = None
+    root:Path = Path(".")
+    model_path: str|Path = None
+    nr_file: str|Path = None
+    sld_file: str|Path = None
     batch_size: int = None
     epochs: int = None
     layers: int = None
@@ -107,11 +117,12 @@ class NRSLDModelTrainerParams:
 
     def __post_init__(self):
         """Extracts and validates required parameters from a nested YAML config."""
-        if isinstance(self._config, dict) and "nr_predict_sld" in self._config:
-            nr_section = self._config["nr_predict_sld"]
+        try:
+            if self._config and "nr_predict_sld" in self._config:
+                nr_section = self._config["nr_predict_sld"]
 
-            try:
                 root = Path(self._config["root"])
+                self.root = root
                 # path to save the generated data file and model
                 self.model_path = _resolve_file(root,nr_section["models"]["model"])
                 self.nr_file = _resolve_file(root, nr_section["file"]["nr_curves_poly"])
@@ -126,8 +137,38 @@ class NRSLDModelTrainerParams:
                 self.epochs = nr_section["models"].get("epochs", 1)
                 self.layers = nr_section["models"].get("layers", 12)
 
-            except KeyError as e:
-                raise ConfigMissingKeyError(f"Missing key in NRSLDModelTrainerParams: {e}")
+            else:
+                self.root = Path(self.root)
+                self.model_path = _resolve_file(self.root,self.model_path)
+                self.nr_file = _resolve_file(self.root,self.nr_file)
+                self.sld_file = _resolve_file(self.root,self.sld_file)
 
-        else:
-            raise ConfigMissingKeyError("nr_predict_sld section missing in config.")
+        except KeyError as e:
+            raise ConfigMissingKeyError(f"Missing key in NRSLDModelTrainerParams: {e}")
+
+from typing import List, Literal
+
+
+@dataclass
+class FilmLayer:
+    sld: float
+    isld: float = 0.0
+    thickness: float = 0.0
+    roughness: float = 0.0
+    name: str = "layer"
+
+
+@dataclass
+class FilmModelDescription:
+    layers: List[FilmLayer]
+    scale: float = 1.0
+    background: float = 0
+
+@dataclass
+class FilmLayerBound:
+    i:int
+    par:Literal["sld","thickness","roughness"]
+    bounds:List[float]
+
+
+

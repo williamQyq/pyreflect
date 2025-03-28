@@ -2,9 +2,10 @@ import numpy as np
 import torch
 import pandas as pd
 
+from pyreflect.input import DataProcessor
 from pyreflect.models.config import DEVICE as device
 
-def run_model_prediction(percep, autoencoder, X:np.ndarray):
+def run_model_prediction(percep, autoencoder, X):
     """
     Runs the trained Autoencoder and MLP model on experimental data
     to generate latent representations and chi parameter predictions.
@@ -13,14 +14,12 @@ def run_model_prediction(percep, autoencoder, X:np.ndarray):
     - percep: Trained MLP model.
     - autoencoder: Trained Autoencoder model.
     - expt_arr: Experimental SLD curve data (NumPy array).
-    - sld_arr: SLD profile data (NumPy array) for interpolation.
-    - num_params: Number of chi parameters to predict.
-    - device: Computation device (CPU/GPU).
+    - X: SLD profile curves
 
     Returns:
     - df_expt_labels: DataFrame containing predicted latent variables and chi parameters.
     """
-    X = np.array(X)  # ensure it's a NumPy array
+    X = DataProcessor.convert_tensors(X)  # ensure it's a NumPy array
     if X.ndim == 3:
         # From (batch, 2, features) → (batch, 2 * features)
         X = X.reshape(X.shape[0], -1)
@@ -30,8 +29,7 @@ def run_model_prediction(percep, autoencoder, X:np.ndarray):
         raise ValueError('X must be either 3 or 2 dimensional.')
 
     print(f"\nX shape for model training: {X.shape}")
-    # Convert to torch tensor
-    expt_curve = torch.tensor(X, dtype=torch.float32).to(device)
+    X = X.to(device)
 
     # Set models to evaluation mode
     autoencoder.eval()
@@ -39,7 +37,7 @@ def run_model_prediction(percep, autoencoder, X:np.ndarray):
 
     with torch.no_grad():
         # Encode the experimental data
-        encoded_expt = autoencoder.encoder(expt_curve)
+        encoded_expt = autoencoder.encoder(X)
         decoded_expt = autoencoder.decoder(encoded_expt)
         out_label = percep(encoded_expt)
 

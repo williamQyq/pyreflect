@@ -9,7 +9,10 @@ A Python package for **Chi parameters prediction** from **SLD profile data** and
 - Predicting **Chi** parameters by training a combined Autoencoder and MLP model.
 
 ## **Quick Start Guide**
-
+To install from TestPyPI, run:
+```bash
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.1.7
+```
 ### 🧑🏻‍💻Example Notebooks ###
 To learn how to use it, check the example notebooks in `pyreflect/example_notebooks`  
 

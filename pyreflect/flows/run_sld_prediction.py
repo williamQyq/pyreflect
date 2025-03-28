@@ -40,7 +40,6 @@ def run_sld_prediction(root:str | Path,config:dict):
         typer.echo(msg)
         raise typer.Exit()
 
-    typer.echo("Running SLD Prediction...")
     predicted_sld = predict_sld_from_nr(model, experimental_nr_file)
 
     return predicted_sld

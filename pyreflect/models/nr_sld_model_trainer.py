@@ -25,7 +25,7 @@ class NRSLDModelTrainer(ModelTrainer):
         self.epochs = epochs
 
     def train_pipeline(self):
-
+        self.model.train()
         # remove wave vector(x channel) from nr
         R_m = self.data_processor.reshape_nr_to_single_channel(self.X)
 

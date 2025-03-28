@@ -1,9 +1,6 @@
-from typing import List
-import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
-from sklearn.preprocessing import MinMaxScaler
 
 class DataProcessor:
     def __init__(self, seed=123):
@@ -26,9 +23,12 @@ class DataProcessor:
 
     @staticmethod
     def convert_tensors(list_arrays):
-        ## Convert to tensors
-        tensor_arrays = [torch.from_numpy(array).float() for array in list_arrays]
+        # Convert single Numpy array to tensors dtype float32
+        if isinstance(list_arrays, np.ndarray):
+            return torch.from_numpy(list_arrays).float()
 
+        # Convert List of Numpy array to tensors
+        tensor_arrays = [torch.from_numpy(array).float() for array in list_arrays]
         return tensor_arrays
 
     @staticmethod
@@ -42,36 +42,45 @@ class DataProcessor:
 
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         return [train_dataset,valid_dataset,test_dataset,train_loader, valid_loader, test_loader]
 
     @staticmethod
-    def normalize_xy_curves(data: List | np.ndarray, scale=(-1,1), apply_log=False)->np.stack:
+    def normalize_xy_curves(curves, apply_log=False)->np.stack:
         """
           Normalizes data (shape [samples,channel, features] to a given scale ([-1, 1] or [0, 1]).
 
           Args:
-              data (np.ndarray): Input array (reflectivity R(q) or SLD).
-              scale (tuple): Target normalization range (default `[-1,1]`, set `(0,1)` if needed).
+              curves (np.ndarray): Input array (reflectivity R(q) or SLD).
               apply_log (bool): Whether to apply `log10` transformation (useful for reflectivity R(q)).
 
           Returns:
               np.stack: Normalized data.
         """
-        # Convert to NumPy array if not already
-        data = np.array(data, dtype=np.float32)
+        curves = np.array(curves)
+        assert curves.ndim == 3 and curves.shape[1] == 2, \
+            f"Expected shape (N, 2, L), got {curves.shape}"
 
         if apply_log:
-            data = np.log10(data)
+            curves[:, 1, :] = np.log10(np.clip(curves[:, 1, :], 1e-8, None))
 
-        assert data.ndim == 3, f"Trying to normalize each channel independently but the data shape is {data.shape}."
-        scalers = [MinMaxScaler(feature_range=scale)for _ in range(data.shape[1])]
+        x_points = curves[:, 0, :]  # shape: (N, L)
+        y_points = curves[:, 1, :]  # shape: (N, L)
 
-        for I in range(data.shape[1]):
-            data[:,I,:] = scalers[I].fit_transform(data[:,I,:])
+        # Compute global min and max
+        min_valXNR = np.min(x_points)
+        max_valXNR = np.max(x_points)
+        min_valYNR = np.min(y_points)
+        max_valYNR = np.max(y_points)
 
-        return data
+        # Normalize
+        x_points = (x_points - min_valXNR) / (max_valXNR - min_valXNR)
+        y_points = (y_points - min_valYNR) / (max_valYNR - min_valYNR)
+
+        # Stack back into shape (N, 2, L)
+        normalized_curves = np.stack([x_points, y_points], axis=1)
+        return normalized_curves
 
 class SLDChiDataProcessor(DataProcessor):
     def __init__(self, expt_sld_file_path, sld_file_path, chi_params_file_path, seed=123):
@@ -158,20 +167,22 @@ class NRSLDDataProcessor(DataProcessor):
         if sld_path:
             self._sld_arr = np.load(sld_path)
 
+        return self._nr_arr, self._sld_arr
+
     def normalize_nr(self):
         """Normalizes NR curves."""
         if self._nr_arr is None:
             raise FileNotFoundError(f"NR file not loaded from path:{self.nr_file_path}")
 
         # Reflectivity decreases exponentially, log transformation compress large range
-        return DataProcessor.normalize_xy_curves(self._nr_arr,scale=(0,1),apply_log=True)
+        return DataProcessor.normalize_xy_curves(self._nr_arr,apply_log=True)
 
     def normalize_sld(self):
         """Normalizes SLD curves."""
         if self._sld_arr is None:
             raise FileNotFoundError(f"SLD File not loaded from path: {self.sld_file_path}")
 
-        return DataProcessor.normalize_xy_curves(self._sld_arr,scale=(0,1),apply_log=True)
+        return DataProcessor.normalize_xy_curves(self._sld_arr,apply_log=False)
 
     def reshape_nr_to_single_channel(self,nr_data:np.ndarray)->np.ndarray:
         """
