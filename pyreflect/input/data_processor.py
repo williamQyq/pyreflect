@@ -47,16 +47,17 @@ class DataProcessor:
         return [train_dataset,valid_dataset,test_dataset,train_loader, valid_loader, test_loader]
 
     @staticmethod
-    def normalize_xy_curves(curves, apply_log=False)->np.stack:
+    def normalize_xy_curves(curves, apply_log=False, min_max_stats=None) -> tuple[np.ndarray, dict]:
         """
-          Normalizes data (shape [samples,channel, features] to a given scale ([-1, 1] or [0, 1]).
+        Normalize NR or SLD curves using global min/max or provided stats.
 
-          Args:
-              curves (np.ndarray): Input array (reflectivity R(q) or SLD).
-              apply_log (bool): Whether to apply `log10` transformation (useful for reflectivity R(q)).
+        Args:
+            curves (np.ndarray): Input array of shape (N, 2, L).
+            apply_log (bool): Whether to apply log10 transformation on y.
+            min_max_stats (dict or None): Optional stats dict {'x': {'min', 'max'}, 'y': {'min', 'max'}}.
 
-          Returns:
-              np.stack: Normalized data.
+        Returns:
+            Tuple of normalized curves and used min_max_stats.
         """
         curves = np.array(curves)
         assert curves.ndim == 3 and curves.shape[1] == 2, \
@@ -65,22 +66,56 @@ class DataProcessor:
         if apply_log:
             curves[:, 1, :] = np.log10(np.clip(curves[:, 1, :], 1e-8, None))
 
-        x_points = curves[:, 0, :]  # shape: (N, L)
-        y_points = curves[:, 1, :]  # shape: (N, L)
+        x_points = curves[:, 0, :]
+        y_points = curves[:, 1, :]
 
-        # Compute global min and max
-        min_valXNR = np.min(x_points)
-        max_valXNR = np.max(x_points)
-        min_valYNR = np.min(y_points)
-        max_valYNR = np.max(y_points)
+        # Use existing stats if provided
+        if min_max_stats:
+            min_valXNR = min_max_stats['x']['min']
+            max_valXNR = min_max_stats['x']['max']
+            min_valYNR = min_max_stats['y']['min']
+            max_valYNR = min_max_stats['y']['max']
+        else:
+            min_valXNR = np.min(x_points)
+            max_valXNR = np.max(x_points)
+            min_valYNR = np.min(y_points)
+            max_valYNR = np.max(y_points)
 
         # Normalize
         x_points = (x_points - min_valXNR) / (max_valXNR - min_valXNR)
         y_points = (y_points - min_valYNR) / (max_valYNR - min_valYNR)
 
-        # Stack back into shape (N, 2, L)
         normalized_curves = np.stack([x_points, y_points], axis=1)
-        return normalized_curves
+
+        return normalized_curves, {
+            'x': {'min': min_valXNR, 'max': max_valXNR},
+            'y': {'min': min_valYNR, 'max': max_valYNR}
+        }
+
+    @staticmethod
+    def denormalize_xy_curves(norm_curves, stats, apply_exp=False):
+        """
+        Denormalize curves from normalized form back to original scale.
+
+        Args:
+            norm_curves (np.ndarray): shape [N, 2, L]
+            stats (dict): min/max values from normalization
+            apply_exp (bool): If data was log-scaled, apply 10** to get back
+
+        Returns:
+            np.ndarray: denormalized curves
+        """
+        x_norm = norm_curves[:, 0, :]
+        y_norm = norm_curves[:, 1, :]
+
+        # Denormalize
+        x_orig = x_norm * (stats['x']['max'] - stats['x']['min']) + stats['x']['min']
+        y_orig = y_norm * (stats['y']['max'] - stats['y']['min']) + stats['y']['min']
+
+        if apply_exp:
+            y_orig = np.power(10, y_orig)
+
+        return np.stack([x_orig, y_orig], axis=1)
 
 class SLDChiDataProcessor(DataProcessor):
     def __init__(self, expt_sld_file_path, sld_file_path, chi_params_file_path, seed=123):
@@ -147,6 +182,8 @@ class NRSLDDataProcessor(DataProcessor):
         self._nr_arr = None
         self._sld_arr = None
 
+        self.norm_stats = dict(nr=None,sld=None) #min max normalization stats
+
     def load_data(self,new_nr_file=None, new_sld_file=None):
         """
 
@@ -167,22 +204,51 @@ class NRSLDDataProcessor(DataProcessor):
         if sld_path:
             self._sld_arr = np.load(sld_path)
 
-        return self._nr_arr, self._sld_arr
+        return self
 
-    def normalize_nr(self):
+    def normalize_nr(self, norm_stats =None):
         """Normalizes NR curves."""
         if self._nr_arr is None:
             raise FileNotFoundError(f"NR file not loaded from path:{self.nr_file_path}")
 
-        # Reflectivity decreases exponentially, log transformation compress large range
-        return DataProcessor.normalize_xy_curves(self._nr_arr,apply_log=True)
+        if norm_stats is not None:
+            self._nr_arr,_ = DataProcessor.normalize_xy_curves(self._nr_arr, apply_log=True, min_max_stats= norm_stats)
+        else:
+            self._nr_arr,self.norm_stats['nr'] = DataProcessor.normalize_xy_curves(self._nr_arr,apply_log=True)
 
-    def normalize_sld(self):
+        return self._nr_arr
+
+    def normalize_sld(self, norm_stats =None):
         """Normalizes SLD curves."""
         if self._sld_arr is None:
             raise FileNotFoundError(f"SLD File not loaded from path: {self.sld_file_path}")
 
-        return DataProcessor.normalize_xy_curves(self._sld_arr,apply_log=False)
+        if norm_stats is not None:
+            self._sld_arr,_ = DataProcessor.normalize_xy_curves(self._sld_arr, apply_log=False, min_max_stats=norm_stats)
+        else:
+            self._sld_arr,self.norm_stats['sld'] = DataProcessor.normalize_xy_curves(self._sld_arr,apply_log=False)
+
+        return self._sld_arr
+
+    def get_normalization_stats(self):
+        """
+        Retrieve the min and max values used during normalization for NR and SLD data.
+
+        :return: Normalization statistics.
+        :rtype: dict
+        :example:
+            {
+                "nr": {
+                    "x": {"min": float, "max": float},
+                    "y": {"min": float, "max": float}
+                },
+                "sld": {
+                    "x": {"min": float, "max": float},
+                    "y": {"min": float, "max": float}
+                }
+            }
+        """
+        return self.norm_stats
 
     def reshape_nr_to_single_channel(self,nr_data:np.ndarray)->np.ndarray:
         """
@@ -201,3 +267,28 @@ class NRSLDDataProcessor(DataProcessor):
         # Selecting the second channel (index 1) and reshaping to (batch_size, 1, sequence_length)
         reshaped_nr = nr_data[:, 1][:, np.newaxis, :]
         return reshaped_nr
+
+    def denormalize(self,normalized_curves: np.ndarray, curve_type:str,min_max_stats):
+        """
+        Denormalize NR or SLD curves using saved normalization metadata.
+
+        :param normalized_curves: np.ndarray:shape [N, 2, L]
+        :param curve_type: 'nr' or 'sld'
+        :param min_max_stats: min max for de-normalization
+        :return: np.ndarray:shape [N, 2, L]
+        """
+        apply_exp = False
+
+        match curve_type:
+            case 'nr':
+                apply_exp = True
+            case 'sld':
+                apply_exp = False
+            case _:
+                raise ValueError(f"Invalid curve type {curve_type}")
+
+        if min_max_stats is None:
+            raise ValueError("Not found normalization statistics.")
+
+        return self.denormalize_xy_curves(normalized_curves, stats=min_max_stats, apply_exp= apply_exp)
+

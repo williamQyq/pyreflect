@@ -109,6 +109,7 @@ class NRSLDModelTrainerParams:
     model_path: str|Path = None
     nr_file: str|Path = None
     sld_file: str|Path = None
+    normalization_stats: str | Path = None
     batch_size: int = None
     epochs: int = None
     layers: int = None
@@ -127,6 +128,7 @@ class NRSLDModelTrainerParams:
                 self.model_path = _resolve_file(root,nr_section["models"]["model"])
                 self.nr_file = _resolve_file(root, nr_section["file"]["nr_curves_poly"])
                 self.sld_file = _resolve_file(root, nr_section["file"]["sld_curves_poly"])
+                self.normalization_stats = _resolve_file(root, nr_section["models"]["normalization_stats"])
 
                 #file must exist
                 _validate_file(self.nr_file)
@@ -145,6 +147,40 @@ class NRSLDModelTrainerParams:
 
         except KeyError as e:
             raise ConfigMissingKeyError(f"Missing key in NRSLDModelTrainerParams: {e}")
+
+@dataclass
+class NRSLDModelInferenceParams:
+    root:Path = Path(".")
+    experimental_nr: str | Path = None
+    normalization_stats: str | Path = None
+
+    # learning_rate: float = None
+    _config: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        """Extracts and validates required parameters from a nested YAML config."""
+        try:
+            if self._config and "nr_predict_sld" in self._config:
+                nr_section = self._config["nr_predict_sld"]
+
+                root = Path(self._config["root"])
+                self.root = root
+                # path to save the generated data file and model
+                self.experimental_nr= _resolve_file(root,nr_section["file"]["experimental_nr_file"])
+                self.normalization_stats = _resolve_file(root, nr_section["models"]["normalization_stats"])
+
+                #file must exist
+                _validate_file(self.normalization_stats)
+                _validate_file(self.experimental_nr)
+
+            else:
+                self.root = Path(self.root)
+                self.experimental_nr = _resolve_file(self.root,self.experimental_nr)
+                self.normalization_stats= _resolve_file(self.root,self.normalization_stats)
+
+        except KeyError as e:
+            raise ConfigMissingKeyError(f"Missing key in NRSLDModelInferenceParams: {e}")
+
 
 from typing import List, Literal
 

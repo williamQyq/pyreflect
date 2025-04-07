@@ -1,8 +1,13 @@
 from pathlib import Path
-from .nr_predict_sld import load_nr_sld_model, train_nr_predict_sld_model, generate_nr_sld_curves, predict_sld_from_nr
-
-from pyreflect.models.config import NRSLDCurvesGeneratorParams,NRSLDModelTrainerParams
 import typer
+import json
+
+from pyreflect.models.config import NRSLDCurvesGeneratorParams,NRSLDModelTrainerParams,NRSLDModelInferenceParams
+import pyreflect.flows.nr_predict_sld as workflow
+from .nr_predict_sld import load_normalization_stat
+
+from ..config.errors import ConfigMissingKeyError
+from ..input import NRSLDDataProcessor
 
 def run_sld_prediction(root:str | Path,config:dict):
     config["root"] = root
@@ -12,34 +17,45 @@ def run_sld_prediction(root:str | Path,config:dict):
     if not model_path.exists():
         typer.echo("No trained SLD model found. Training a new model...")
 
-        #Generate curves for model training and save generated data to folder
+        #Generate curves for model training and save generated data to path
         try:
-            typer.echo("Generating Curves for training...")
+            # Init data generator params from config
             generator_params = NRSLDCurvesGeneratorParams(_config=config)
-            generate_nr_sld_curves(generator_params)
 
-            #Init params for model training
-            typer.echo("Training model using curves...")
-            trainer_params = NRSLDModelTrainerParams(_config=config)
-            #Train and save
-            train_nr_predict_sld_model(trainer_params, auto_save=True)
-
-        except Exception as e:
+        except ConfigMissingKeyError as e:
             typer.echo(e)
             raise typer.Exit()
 
+        # Prepare synthetic data
+        typer.echo("Generating Curves for training...")
+        workflow.generate_nr_sld_curves(generator_params)
+
+        # Init training params from config
+        trainer_params = NRSLDModelTrainerParams(_config=config)
+
+        #Preprocessing data
+        dproc = NRSLDDataProcessor(trainer_params.nr_file,trainer_params.sld_file).load_data()
+
+        X,y = workflow.preprocess(dproc,trainer_params.normalization_stats)
+
+        typer.echo("Training model using curves...")
+
+        #Train and save
+        workflow.train_nr_predict_sld_model(X,y,trainer_params, auto_save=True)
+
     # Load model
-    model = load_nr_sld_model(model_path)
+    model = workflow.load_nr_sld_model(model_path)
     typer.echo("Loaded NR SLD model...")
 
-    # Perform prediction
-    experimental_nr_file = root / Path(config["nr_predict_sld"]["file"]["experimental_nr_file"])
-    if not experimental_nr_file.exists():
-        msg = f"\n\n⚠️  Error: The experimental NR file does not exist.\n"
-        msg += "Please update the configuration and provide a valid NR file for prediction."
-        typer.echo(msg)
-        raise typer.Exit()
 
-    predicted_sld = predict_sld_from_nr(model, experimental_nr_file)
+    inference_params = NRSLDModelInferenceParams(_config=config)
+
+    norm_stats = load_normalization_stat(inference_params.normalization_stats)
+
+    #Inference
+    predicted_sld = workflow.predict_sld_from_nr(
+        model,
+        inference_params.experimental_nr,
+        norm_stats)
 
     return predicted_sld

@@ -1,22 +1,40 @@
 #This block is the class that is used to generate the SLD and NR curves
-from typing import List
-from tqdm.auto import tqdm
+from typing import List, Tuple
 
+import typer
+from tqdm.auto import tqdm
+from scipy.stats import qmc
 from scipy.interpolate import CubicSpline
 from refl1d.names import *
 import numpy as np
 import os
 
 class ReflectivityDataGenerator:
+    """
+        Generate pairs of NR, SLD profile curves using Reflectivity Model
+    """
     def __init__(self,num_layers,layer_desc = None, layer_bound = None):
         self.num_layers = num_layers
         match self.num_layers:
-            case 6:
-                self.model = ReflectivitySixLayerModel()
+            # Use physical model from original code
+            case 5:
+                typer.echo(f"Using Legacy Reflectivity Model layer{num_layers}...\n")
+                self.model = ReflectivityFiveLayerModel()
             case _:
+                typer.echo(f"Using Model layer{num_layers}...\n")
                 self.model = ReflectivityModel(num_layers,layer_desc,layer_bound)
 
-    def generate(self,num_curves):
+    def generate(self,num_curves:int)-> Tuple[np.ndarray, np.ndarray]:
+        """
+        For each curve, sample a random set of parameters
+            within the defined bounds for each layer,
+            update the fixed model with these parameters, and
+            pass the resulting model into calculate_reflectivity
+            to compute the reflectivity curve.
+
+        :param num_curves: int
+        :return Tuple(np.ndarray,np.ndarray):
+        """
         self.model.generate(num_curves)
         #add noise and log transform NR
         # pars, train_data = self.model.get_preprocessed_data()
@@ -67,7 +85,7 @@ def calculate_reflectivity(q, model_description, q_resolution=0.0294855):
     return model_description['scale'] * r, zNew, sldNew
 
 
-class ReflectivitySixLayerModel(object):
+class ReflectivityFiveLayerModel(object):
         # Neutrons come in from the last item in the list
     def __init__(self,q=None, name='polymer'):
 
@@ -78,7 +96,7 @@ class ReflectivitySixLayerModel(object):
                   dict(i=1, par='thickness', bounds=[9.7216, 14.624]),
                   dict(i=1, par='roughness', bounds=[1.108, 2.998]),
 
-                  # The next two layers are the polymer
+                  # The next 5 layers are the polymer
                     dict(i=2, par='sld', bounds=[3.7235, 4.197]),
                   dict(i=2, par='thickness', bounds=[8.717,98.867]),
                   dict(i=2, par='roughness', bounds=[2.2571,38.969]),
@@ -137,7 +155,11 @@ class ReflectivitySixLayerModel(object):
 
     def generate(self, n=100):
         """
-            Generate a random sample of models
+            For each curve, sample a random set of parameters
+            within the defined bounds for each layer,
+            update the fixed model with these parameters, and
+            pass the resulting model into calculate_reflectivity
+            to compute the reflectivity curve.
         """
         npars = len(self.parameters)
         self._train_pars = np.random.uniform(low=-1, high=1, size=[n, npars])
@@ -170,6 +192,7 @@ class ReflectivitySixLayerModel(object):
             r, z, sld = calculate_reflectivity(self.q, _desc)
             self._refl_array.append(r)
             self._smooth_array.append([z,sld])
+
     def get_model_description(self, pars):
         """
             Convert the parameter list to a model description that we can use
@@ -283,7 +306,11 @@ class ReflectivityModel:
 
     def generate(self, n=100):
         npars = len(self.parameters)
-        self._train_pars = np.random.uniform(low=-1, high=1, size=[n, npars])
+
+        sampler = qmc.LatinHypercube(d=npars)
+        sample = sampler.random(n=n) # shape: (n, npars)
+        # self._train_pars = np.random.uniform(low=-1, high=1, size=[n, npars])
+        self._train_pars = sample*2 -1 # map linearly to [-1, 1]
         self.compute_reflectivity()
 
     def to_model_parameters(self, pars):
@@ -306,5 +333,4 @@ class ReflectivityModel:
         for i, par in enumerate(self.parameters):
             self.model_description['layers'][par['i']][par['par']] = pars[i]
         return self.model_description
-
 

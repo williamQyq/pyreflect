@@ -3,8 +3,7 @@ import torch
 from .config import DEVICE
 
 class ModelTrainer:
-    def __init__(self,data_processor,batch_size, epochs):
-        self.data_processor = data_processor
+    def __init__(self,batch_size, epochs):
         self.batch_size = batch_size
         self.epochs = epochs
 

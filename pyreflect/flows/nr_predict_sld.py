@@ -1,5 +1,5 @@
 from pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator, ReflectivityModel
-from pyreflect.input.data_processor import NRSLDDataProcessor
+from pyreflect.input.data_processor import NRSLDDataProcessor, DataProcessor
 from pyreflect.models.config import DEVICE, NRSLDCurvesGeneratorParams, NRSLDModelTrainerParams
 from pyreflect.models.cnn import CNN
 from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
@@ -7,19 +7,18 @@ from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
 import numpy as np
 import torch
 import typer
+import json
 from pathlib import Path
 from typing import Tuple
 
 def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)->Tuple[np.ndarray, np.ndarray]:
-
     """
-        Generates and saves reflectivity and SLD curve data.
+    Generates and saves reflectivity and SLD curve data.
 
-        Parameters:
-        num_curves (int): Number of curves to generate per layer combination.
-        dir (str): Directory where the files will be saved.
-
+    :param params: NRSLDCurvesGeneratorParams
+    :return: Tuple[np.ndarray, np.ndarray]: (nr,sld)
     """
+
     m = ReflectivityDataGenerator(num_layers=params.num_film_layers)
 
     processed_nr, processed_sld_profile = m.generate(params.num_curves)
@@ -33,27 +32,58 @@ def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)->Tuple[np.ndarray,
 
     return processed_nr, processed_sld_profile
 
+def preprocess(dproc:NRSLDDataProcessor,norm_stats_save_path: str)->Tuple[np.ndarray, np.ndarray]:
+    """
+    Preprocess function normalization and remove Q from NR.
+    :param dproc: DataProcessor, get nr,sld from load data
+    :return: nr, sld
+    """
+    normalized_sld = dproc.normalize_sld()
+    normalized_nr = dproc.normalize_nr()
+    norm_stats = dproc.get_normalization_stats()
+
+    with open(norm_stats_save_path, 'w') as f:
+        json.dump(norm_stats, f,indent=2)
+
+    # Only keep reflectivity, remove Q
+    reshaped = dproc.reshape_nr_to_single_channel(normalized_nr)
+
+    return reshaped,normalized_sld
+
 def load_nr_sld_model(model_path):
     model = CNN().to(DEVICE)
     model.load_state_dict(torch.load(model_path, map_location=DEVICE))
 
     return model
-
-def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)-> None:
+def load_normalization_stat(norm_stat_path):
     """
-    :param params:
-    :param auto_save:
+    Load min max for normalization used in training from file.
+    :param norm_stat_path:
     :return:
-    :raise FileNotFoundError:
     """
-    data_processor = NRSLDDataProcessor(params.nr_file,params.sld_file)
-    data_processor.load_data()
+    try:
+        with open(norm_stat_path, "r") as f:
+            norm_stats = json.load(f)
+    except FileNotFoundError:
+        print("Normalization stats file not found.")
+    except json.JSONDecodeError:
+        print("File is not valid JSON.")
 
-    # NR-SLD curves are already normalized during generation
+    return norm_stats
+
+def train_nr_predict_sld_model(reshaped_nr_curves, normalized_sld_curves, params:NRSLDModelTrainerParams, auto_save=True)-> torch.nn.Module:
+    """
+    Model training
+    :param reshaped_nr_curves:
+    :param normalized_sld_curves:
+    :param params:
+    :param auto_save: boolean
+    :return: torch.nn.Module
+    """
+
     trainer = NRSLDModelTrainer(
-        data_processor=data_processor,
-        X=data_processor.normalize_nr(),
-        y=data_processor.normalize_sld(),
+        X=reshaped_nr_curves,
+        y=normalized_sld_curves,
         layers=params.layers,
         batch_size=params.batch_size,
         epochs=params.epochs,
@@ -70,37 +100,43 @@ def train_nr_predict_sld_model(params:NRSLDModelTrainerParams, auto_save=True)->
 
     return model
 
-def predict_sld_from_nr(model, nr_file:str | Path)->np.ndarray:
+def predict_sld_from_nr(model, nr_data:np.ndarray | Path | str, norm_stats)->np.ndarray:
     """
-        Predicts SLD profiles from given NR curves using a trained model.
+    Predicts SLD profiles from given NR curves using a trained model.
 
-        Args:
-            model (torch.nn.Module): Trained PyTorch model.
-            nr_file (str): Path to the NR file to process.
-
-        Returns:
-            np.ndarray: Predicted SLD curves.
+    :param model:torch.nn.Module: trained CNN model
+    :param nr_data: np.ndarray | str: NR data
+    :param norm_stats: dict: normalization status
+    :return: np.ndarray: SLD profiles
     """
+    norm_stats_nr = norm_stats["nr"]
+    norm_stats_sld = norm_stats["sld"]
     try:
-        # Load data
-        processor = NRSLDDataProcessor(nr_file_path=nr_file)
-        nr_arr,sld_arr = processor.load_data()
+        if isinstance(nr_data, (str,Path)):
+            processor = NRSLDDataProcessor(nr_file_path=nr_data).load_data()
+            norm_nr = processor.normalize_nr(norm_stats_nr)
+        elif isinstance(nr_data, np.ndarray):
+            norm_nr,_ = DataProcessor.normalize_xy_curves(nr_data,apply_log=True,min_max_stats=norm_stats_nr)
+            processor = NRSLDDataProcessor()
+        else:
+            raise TypeError("nr_data must be a file path (str) or a NumPy array.")
     except FileNotFoundError as e:
-        typer.echo(e)
+        typer.echo(f"Error loading NR data: {e}")
         raise typer.Exit()
 
-    norm_nr = processor.normalize_nr()
+    # Remove wave vector (x channel) of NR
+    reshaped = processor.reshape_nr_to_single_channel(norm_nr)
 
-    #Remove wave vector (x channel) of NR
-    reshaped_nr_curves = processor.reshape_nr_to_single_channel(norm_nr)
+    y = _predict(model, reshaped)
 
-    #Prediction
-    predicted_sld_curves = _predict(model, reshaped_nr_curves)
+    predicted_sld_curves = processor.denormalize(
+        y,
+        curve_type='sld',
+        min_max_stats=norm_stats_sld)
 
     typer.echo(f"Predicted SLD shape: {predicted_sld_curves.shape}")
 
     return predicted_sld_curves
-
 
 def _predict(model, X_batch:np.ndarray)->np.ndarray:
     model.eval().to(DEVICE)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyreflect"
-version = "1.2.3"
+version = "1.2.7"
 description = "The package tool for neutron reflectivity analysis"
 authors = ["Yuqing Qiao <qiao.yuqi@northeastern.edu>"]
 license = "MIT"
@@ -30,7 +30,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "pyreflect"
-version = "1.2.3"
+version = "1.2.7"
 authors = [
   { name="Yuqing Qiao", email="qiao.yuqi@northeastern.edu" },
 ]
