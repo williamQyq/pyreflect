@@ -133,9 +133,9 @@ class SLDChiDataProcessor(DataProcessor):
 
     def load_data(self):
         """Loads SLD and Chi parameter data."""
-        self.sld_arr = np.load(self.sld_file_path)
-        self.params_arr = np.load(self.chi_params_file_path)
-        self.expt_arr = np.load(self.expt_sld_file_path)
+        self.sld_arr = np.load(self.sld_file_path,allow_pickle=True)
+        self.params_arr = np.load(self.chi_params_file_path,allow_pickle=True)
+        self.expt_arr = np.load(self.expt_sld_file_path,allow_pickle=True)
         self.num_params = self.params_arr.shape[1]
 
     @classmethod
@@ -199,10 +199,10 @@ class NRSLDDataProcessor(DataProcessor):
         sld_path = new_sld_file if new_sld_file is not None else self.sld_file_path
 
         if nr_path:
-            self._nr_arr = np.load(nr_path)
+            self._nr_arr = np.load(nr_path,allow_pickle=True)
 
         if sld_path:
-            self._sld_arr = np.load(sld_path)
+            self._sld_arr = np.load(sld_path,allow_pickle=True)
 
         return self
 

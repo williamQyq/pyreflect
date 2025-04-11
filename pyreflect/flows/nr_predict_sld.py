@@ -42,8 +42,7 @@ def preprocess(dproc:NRSLDDataProcessor,norm_stats_save_path: str)->Tuple[np.nda
     normalized_nr = dproc.normalize_nr()
     norm_stats = dproc.get_normalization_stats()
 
-    with open(norm_stats_save_path, 'w') as f:
-        json.dump(norm_stats, f,indent=2)
+    np.save(norm_stats_save_path, norm_stats, allow_pickle=True)
 
     # Only keep reflectivity, remove Q
     reshaped = dproc.reshape_nr_to_single_channel(normalized_nr)
@@ -55,21 +54,13 @@ def load_nr_sld_model(model_path):
     model.load_state_dict(torch.load(model_path, map_location=DEVICE))
 
     return model
-def load_normalization_stat(norm_stat_path):
+def load_normalization_stat(norm_stat_path)->dict:
     """
     Load min max for normalization used in training from file.
     :param norm_stat_path:
-    :return:
+    :return: min max dict of nr and sld
     """
-    try:
-        with open(norm_stat_path, "r") as f:
-            norm_stats = json.load(f)
-    except FileNotFoundError:
-        print("Normalization stats file not found.")
-    except json.JSONDecodeError:
-        print("File is not valid JSON.")
-
-    return norm_stats
+    return np.load(norm_stat_path, allow_pickle=True).item()
 
 def train_nr_predict_sld_model(reshaped_nr_curves, normalized_sld_curves, params:NRSLDModelTrainerParams, auto_save=True)-> torch.nn.Module:
     """

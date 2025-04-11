@@ -1,6 +1,5 @@
 from pathlib import Path
 import typer
-import json
 
 from pyreflect.models.config import NRSLDCurvesGeneratorParams,NRSLDModelTrainerParams,NRSLDModelInferenceParams
 import pyreflect.flows.nr_predict_sld as workflow
