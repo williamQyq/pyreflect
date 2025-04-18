@@ -86,7 +86,7 @@ def train_nr_predict_sld_model(reshaped_nr_curves, normalized_sld_curves, params
     # save model
     if auto_save:
         to_be_saved_model_path = params.model_path
-        torch.save(model.state_dict(), to_be_saved_model_path)
+        torch.save(model, to_be_saved_model_path)
         typer.echo(f"NR predict SLD trained CNN model saved at: {to_be_saved_model_path}")
 
     return model

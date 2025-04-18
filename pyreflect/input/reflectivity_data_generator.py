@@ -86,6 +86,10 @@ def calculate_reflectivity(q, model_description, q_resolution=0.0294855):
 
 
 class ReflectivityFiveLayerModel(object):
+    """
+    Reflectivity model with five layers, with substrate, and SiOx layer as base,
+    polymer film layer in the middle and top air layer.
+    """
         # Neutrons come in from the last item in the list
     def __init__(self,q=None, name='polymer'):
 
@@ -269,6 +273,7 @@ class ReflectivityModel:
         self._train_data = None
 
     def _auto_generate_layer_bounds(self):
+        typer.echo("Generating random layer bounds...")
         bounds=[
             dict(i=0, par="roughness", bounds=[0, 5]),
             #siox layer
@@ -287,6 +292,8 @@ class ReflectivityModel:
         return bounds
 
     def _auto_generate_layer_description(self):
+        typer.echo("Generating layer description based on layer bounds...")
+
         random_layers = [
                      dict(sld=2.07, isld=0, thickness=0, roughness=3, name='substrate'),
                      dict(sld=3.3, isld=0, thickness=16.2139, roughness=7, name='siox'),
