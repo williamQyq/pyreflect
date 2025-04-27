@@ -15,14 +15,8 @@ To install from TestPyPI, run:
 pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.1.7
 ```
 
-### 🧑🏻‍💻Example Notebooks ###
-To learn how to use it, check the example notebooks in `pyreflect/example_notebooks`  
-
-<video width="640" height="360" controls>
-  <source src="./media/pyreflect-sld-prediction-demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
+### 🧑🏻‍💻Example Notebooks ### 
+To learn how to use it, check the example notebooks in `pyreflect/example_notebooks`
 
 ### **1️⃣ Initialize Configuration**
 To set up the default configuration, run:
