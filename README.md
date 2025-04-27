@@ -1,5 +1,6 @@
 # **NR-SCFT-ML: Neutron Reflectivity SCFT Machine Learning**
-A Python package for **Chi parameters prediction** from **SLD profile data** and **SLD prediction from NR curves** using machine learning.
+A Python package for Neutron Reflectivity data analysis using Machine Learning.
+Including **Chi parameters prediction** from **SLD profile data** and **SLD profile prediction from NR curves**.
 
 ## **Overview**
 **NR-SCFT-ML** is a PyPI package for efficient processing and analysis of Neutron Reflectivity (NR) data. It provides a streamlined pipeline for:
@@ -13,8 +14,15 @@ To install from TestPyPI, run:
 ```bash
 pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.1.7
 ```
+
 ### 🧑🏻‍💻Example Notebooks ###
 To learn how to use it, check the example notebooks in `pyreflect/example_notebooks`  
+
+<video width="640" height="360" controls>
+  <source src="./media/pyreflect-sld-prediction-demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
 
 ### **1️⃣ Initialize Configuration**
 To set up the default configuration, run:

@@ -50,10 +50,11 @@ def preprocess(dproc:NRSLDDataProcessor,norm_stats_save_path: str)->Tuple[np.nda
     return reshaped,normalized_sld
 
 def load_nr_sld_model(model_path):
-    model = CNN().to(DEVICE)
+    model = CNN()
     model.load_state_dict(torch.load(model_path, map_location=DEVICE))
 
     return model
+
 def load_normalization_stat(norm_stat_path)->dict:
     """
     Load min max for normalization used in training from file.
@@ -86,7 +87,7 @@ def train_nr_predict_sld_model(reshaped_nr_curves, normalized_sld_curves, params
     # save model
     if auto_save:
         to_be_saved_model_path = params.model_path
-        torch.save(model, to_be_saved_model_path)
+        torch.save(model.state_dict(), to_be_saved_model_path)
         typer.echo(f"NR predict SLD trained CNN model saved at: {to_be_saved_model_path}")
 
     return model
