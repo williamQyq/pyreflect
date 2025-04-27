@@ -16,7 +16,11 @@ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/
 ```
 
 ### 🧑🏻‍💻Example Notebooks ### 
-To learn how to use it, check the example notebooks in `pyreflect/example_notebooks`
+To learn how to use it, check the example notebooks in `pyreflect/example_notebooks` or watch the tutorial video.
+
+<a href="https://youtu.be/cc8xeLhOXDo">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" width="50" height="50" />
+</a>
 
 ### **1️⃣ Initialize Configuration**
 To set up the default configuration, run:
