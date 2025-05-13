@@ -9,25 +9,41 @@ Including **Chi parameters prediction** from **SLD profile data** and **SLD prof
 - Predicting SLD Profile by training a CNN
 - Predicting **Chi** parameters by training a combined Autoencoder and MLP model.
 
-## **Quick Start Guide**
+## **Quick Start Guide**  
+
+Prepare the Package Environment on HPC or Your Local Machine (Large Memory Required)
+
+You can make setup shell script executable with:
+
+```bash
+chmod +x setup.sh  
+```
+
+Then run:
+```code
+./setup.sh
+```
+
 To install from TestPyPI, run:
 ```bash
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.1.7
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.3.1
 ```
 
 ### 🧑🏻‍💻Example Notebooks ### 
-To learn how to use it, check the example notebooks in `pyreflect/example_notebooks` or watch the tutorial video.
+To learn how to use it, check the example notebooks in `pyreflect/example_notebooks` or watch the tutorial video. Click below:
 
 <a href="https://youtu.be/cc8xeLhOXDo">
   <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" width="50" height="50" />
 </a>
 
 ### **1️⃣ Initialize Configuration**
-To set up the default configuration, run:
+To initialize the default configuration, run:
 
 ```bash
-python -m pyreflect init
-```  
+python -m pyreflect init --force
+```
+Use the --force flag if the configuration has already been created and you want to overwrite it.
+
 ### **2️⃣ Run Training & Prediction**
 Open `settings.yml` and update the file paths for your SLD profile data and Chi parameters
 
