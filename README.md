@@ -47,12 +47,21 @@ Use the --force flag if the configuration has already been created and you want 
 ### **2️⃣ Run Training & Prediction**
 Open `settings.yml` and update the file paths for your SLD profile data and Chi parameters
 
+### **2️⃣.1️⃣ Training datasets and Train model 
+Generate training datasets using the example in [example_notebook_autoencoder.ipynb](pyreflect/example_notebooks/example_notebook_autoencoder.ipynb).  
+The memory usage should be properly managed by controlling the number of curves generated for training, as it will consume a large amount of memory.  
+
+Train the model using the example in [example_notebook_SLD_prediction.ipynb](pyreflect/example_notebooks/example_notebook_SLD_prediction.ipynb).
+
+### **2️⃣.2️⃣ A simple Experimental Datasets - from real world lab 
+[datasets](datasets) contains processed experimental NR, its manual fit SLD profile data, and AE denoised experimental NR data. 
+
 ### **3️⃣ Run interaction chi parameters prediction**
 ```bash
 python -m pyreflect run --enable-chi-prediction
 ```
 
-### **4️⃣ Run sld profile prediction from nr curves**
+### **4️⃣ Run sld profile prediction from nr curves(or import package lib in notebook)**
 ```bash
 python -m pyreflect run --enable-sld-prediction
 ```
@@ -60,9 +69,9 @@ python -m pyreflect run --enable-sld-prediction
 ## Credits
 
 This project builds on work by:
-- Prof. Miguel Fuentes-Cabrera [NR-SCFT-ML](https://github.com/miguel-fc/NR-SCFT-ML)
-- Dr. Rajeev Kumar
 - Brian Qu ([NR-SLD-CNN](https://github.com/BBQ591/NR-SLD-CNN))
+- Dr. Rajeev Kumar
+- Prof. Miguel Fuentes-Cabrera [NR-SCFT-ML](https://github.com/miguel-fc/NR-SCFT-ML)
 
 ## Author
 
