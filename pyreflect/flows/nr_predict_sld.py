@@ -7,7 +7,6 @@ from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
 import numpy as np
 import torch
 import typer
-import json
 from pathlib import Path
 from typing import Tuple
 

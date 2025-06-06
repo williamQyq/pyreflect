@@ -17,7 +17,7 @@ class ReflectivityDataGenerator:
         self.num_layers = num_layers
         match self.num_layers:
             # Use physical model from original code
-            case 5:
+            case 5 if layer_desc is None and layer_bound is None:
                 typer.echo(f"Using Legacy Reflectivity Model layer{num_layers}...\n")
                 self.model = ReflectivityFiveLayerModel()
             case _:

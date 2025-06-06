@@ -1,30 +1,33 @@
 #!/bin/bash
 
-# Load necessary modules
-module load anaconda3/2022.05 cuda/12.1
+# === Environment variables ===
+ENV_NAME="pyreflectenv"
+DISPLAY_NAME="PyreflectEnvironment"
 
-# Create and activate the Conda environment
-ENV_NAME="MY_env"
-PYTHON_VERSION="3.11"
+# === Load module ===
+module load conda
 
-# Create the environment
-conda create --name "$ENV_NAME" python="$PYTHON_VERSION" -y
+# # === Ensure conda shell functions are available ===
+eval "$(conda shell.bash hook)"
 
-# Activate the environment
-source activate "$ENV_NAME"
+# === Check if conda environment exists ===
+if conda env list | grep -qE "^${ENV_NAME}[[:space:]]"; then
+    echo "✅ Conda environment '${ENV_NAME}' already exists."
+else
+    echo "🔧 Creating conda environment '${ENV_NAME}' with Python 3.11..."
+    conda create -y -n "${ENV_NAME}" python=3.11
+fi
 
-# Install required packages
-conda install jupyterlab -y
-conda install -c conda-forge cudatoolkit=11.2.2 cudnn=8.1.0 -y
+# === Activate the conda environment ===
+conda activate "${ENV_NAME}"
 
-# Export LD_LIBRARY_PATH to use CUDA libraries inside the environment
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/"
+conda install -c conda-forge ipykernel
 
-# Make the LD_LIBRARY_PATH update persistent across future environment activations
-mkdir -p "$CONDA_PREFIX/etc/conda/activate.d"
-echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > "$CONDA_PREFIX/etc/conda/activate.d/env_vars.sh"
-
-# Upgrade pip
-pip install --upgrade pip
-
-echo "Conda environment '$ENV_NAME' created and configured successfully."
+# === Check if Jupyter kernel exists ===
+if jupyter kernelspec list | grep -q "${ENV_NAME}"; then
+    echo "✅ Jupyter kernel '${ENV_NAME}' already exists."
+else
+    echo "🔧 Creating Jupyter kernel '${ENV_NAME}'..."
+    python -m ipykernel install --user --name "${ENV_NAME}" --display-name "${DISPLAY_NAME}"
+    echo "✅ Created Jupyter kernel '${DISPLAY_NAME}'."
+fi

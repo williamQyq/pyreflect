@@ -11,22 +11,16 @@ Including **Chi parameters prediction** from **SLD profile data** and **SLD prof
 
 ## **Quick Start Guide**  
 
-Prepare the Package Environment on HPC or Your Local Machine (Large Memory Required)
+Prepare the Package Environment on HPC or Your Local Machine (Large Memory Required). The `setup.sh` creates a Jupyter kernel environment using the Python version 3.11.
 
-You can make setup shell script executable with:
-
-```bash
-chmod +x setup.sh  
-```
-
-Then run:
+run in cell:
 ```code
-./setup.sh
+!bash setup.sh
 ```
 
 To install from TestPyPI, run:
 ```bash
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.3.1
+%pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.3.1
 ```
 
 ### 🧑🏻‍💻Example Notebooks ### 
