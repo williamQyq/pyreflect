@@ -11,7 +11,7 @@ Including **Chi parameters prediction** from **SLD profile data** and **SLD prof
 
 ## **Quick Start Guide**  
 
-Prepare the Package Environment on HPC or Your Local Machine (Large Memory Required). The `setup.sh` creates a Jupyter kernel environment using the Python version 3.11.
+Prepare the Package Environment on HPC or Your Local Machine (Large Memory Required). The `setup.sh` creates a Jupyter kernel environment named `PyreflectEnvironment`.
 
 run in cell:
 ```code
@@ -31,7 +31,7 @@ To learn how to use it, check the example notebooks in `pyreflect/example_notebo
 </a>
 
 ### **1️⃣ Initialize Configuration**
-To initialize the default configuration, run:
+To initialize the default configuration for model path, hyperparameters, and data reading paths, run:
 
 ```bash
 python -m pyreflect init --force
