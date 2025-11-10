@@ -22,7 +22,7 @@ class ReflectivityDataGenerator:
                 self.model = ReflectivityFiveLayerModel()
             case _:
                 typer.echo(f"Using Model layer{num_layers}...\n")
-                self.model = ReflectivityModel(num_layers,layer_desc,layer_bound)
+                self.model = ReflectivityModel(num_layers,layer_desc=layer_desc,layer_bound=layer_bound)
 
     def generate(self,num_curves:int)-> Tuple[np.ndarray, np.ndarray]:
         """
@@ -250,11 +250,11 @@ class ReflectivityModel:
     """
     def __init__(self,
                  num_layers: int,
-                 q=None,
                  layer_desc: List[dict] = None,
-                 layer_bound: List[dict] = None):
+                 layer_bound: List[dict] = None,
+                 q=None):
 
-        self.q = q if q is not None else np.logspace(np.log10(0.0081), np.log10(0.1975), num=308)
+        self.q = np.asarray(q) if q is not None else np.logspace(np.log10(0.0081), np.log10(0.1975), num=308)
         self.num_layers = num_layers
         self.model_description = {
             "layers": layer_desc if layer_desc is not None else self._auto_generate_layer_description(),

@@ -24,6 +24,11 @@ def _validate_file(file_path: Path)->Path:
 
     return file_path
 
+def _validate_config(config,keys):
+    for key in keys:
+        if config[key] is None:
+            raise ConfigMissingKeyError(key)
+
 @dataclass
 class ChiPredTrainingParams:
     mod_expt_file: str | Path = None
@@ -112,7 +117,8 @@ class NRSLDModelTrainerParams:
     normalization_stats: str | Path = None
     batch_size: int = None
     epochs: int = None
-    layers: int = None
+    layers: int = None,
+    dropout: float = None,
     # learning_rate: float = None
     _config: dict = field(default_factory=dict)
 
@@ -134,10 +140,17 @@ class NRSLDModelTrainerParams:
                 _validate_file(self.nr_file)
                 _validate_file(self.sld_file)
 
-                # Model training parameters
-                self.batch_size = nr_section["models"].get("batch_size", 32)
-                self.epochs = nr_section["models"].get("epochs", 1)
-                self.layers = nr_section["models"].get("layers", 12)
+                required_keys = ["batch_size", "epochs", "layers", "dropout"]
+                _validate_config(nr_section["models"],[required_keys])
+
+                # validate model training parameters
+                model_config = nr_section["models"]
+
+                self.batch_size = model_config.get("batch_size")
+                self.epochs = model_config.get("epochs")
+
+                self.layers = model_config.get("layers")
+                self.dropout = model_config.get("dropout")
 
             else:
                 self.root = Path(self.root)

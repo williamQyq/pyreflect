@@ -45,5 +45,6 @@ nr_predict_sld:
         num_curves: 50000   # Number of generated curves for training 
         epochs: 10 # CNN training epochs
         batch_size: 32 # Batch size for training
+        dropout: 0.5 # Dropout rate for training
         normalization_stats: data/normalization_stat.npy   #Normalization statistics
 """

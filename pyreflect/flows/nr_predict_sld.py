@@ -78,6 +78,7 @@ def train_nr_predict_sld_model(reshaped_nr_curves, normalized_sld_curves, params
         layers=params.layers,
         batch_size=params.batch_size,
         epochs=params.epochs,
+        dropout=params.dropout,
     )
 
     # training

@@ -12,9 +12,9 @@ WEIGHT_DECAY = 2.6324e-05
 SPLIT_RATIO = 0.8
 
 class NRSLDModelTrainer(ModelTrainer):
-    def __init__(self,X,y,layers, batch_size, epochs):
+    def __init__(self,X,y,layers, batch_size, epochs,dropout=0.5):
         super().__init__(batch_size = batch_size, epochs = epochs)
-        self.model = CNN(layers).to(DEVICE) #model
+        self.model = CNN(layers=layers,dropout_prob=dropout).to(DEVICE) #model
         self.X = X
         self.y = y
         self.layers = layers
