@@ -1,4 +1,4 @@
-from pyreflect.input import DataProcessor
+from src.pyreflect.input import DataProcessor
 
 from .config import DEVICE
 import torch

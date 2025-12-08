@@ -1,8 +1,9 @@
-from pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator, ReflectivityModel
-from pyreflect.input.data_processor import NRSLDDataProcessor, DataProcessor
-from pyreflect.models.config import DEVICE, NRSLDCurvesGeneratorParams, NRSLDModelTrainerParams
-from pyreflect.models.cnn import CNN
-from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
+from src.pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator
+from src.pyreflect.input.data_processor import NRSLDDataProcessor, DataProcessor
+from src.pyreflect.config.runtime import DEVICE
+from src.pyreflect.models.config import NRSLDCurvesGeneratorParams, NRSLDModelTrainerParams
+from src.pyreflect.models.cnn import CNN
+from src.pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
 
 import numpy as np
 import torch
@@ -10,28 +11,43 @@ import typer
 from pathlib import Path
 from typing import Tuple
 
-def generate_nr_sld_curves(params:NRSLDCurvesGeneratorParams)->Tuple[np.ndarray, np.ndarray]:
-    """
-    Generates and saves reflectivity and SLD curve data.
+# TODO: finish the pipeline design
+class ReflectivityPipeline:
+    def __init__(self, data_strategy, preprocess_strategy, trainer, predictor):
+        self.data_strategy = data_strategy
+        self.preprocess_strategy = preprocess_strategy
+        self.trainer = trainer
+        self.predictor = predictor
 
-    :param params: NRSLDCurvesGeneratorParams
-    :return: Tuple[np.ndarray, np.ndarray]: (nr,sld)
-    """
+    def prepare_dataset(self):
+        curves = self.data_strategy.generate()
+        return self.preprocess_strategy.apply(*curves)
 
-    m = ReflectivityDataGenerator(num_layers=params.num_film_layers)
+    def train(self, dataset):
+        return self.trainer.train(dataset)
 
-    processed_nr, processed_sld_profile = m.generate(params.num_curves)
+    def predict(self, model, nr_curves):
+        processed = self.preprocess_strategy.apply_nr_only(nr_curves)
+        return self.predictor.predict(model, processed)
 
-    np.save(params.mod_sld_file, processed_sld_profile)
-    np.save(params.mod_nr_file, processed_nr)
+    # def generate_training_data(self,layer_desc = None, layer_bound = None):
+    #     data_generator = ReflectivityDataGenerator(
+    #         num_layers=self.data_gen_params.num_film_layers,
+    #         layer_desc=layer_desc,
+    #         layer_bound=layer_bound,)
+    #
+    #     syn_nr, syn_sld = data_generator.generate(self.data_gen_params.num_curves)
+    #     np.save(self.data_gen_params.mod_sld_file,syn_sld)
+    #     np.save(self.data_gen_params.mod_nr_file,syn_nr)
+    #
+    #     typer.echo(f"Synthetic data NR SLD generated and saved at: \n\
+    #                    mod sld file: {self.data_gen_params.mod_sld_file}\n\
+    #                     mod nr file: {self.data_gen_params.mod_nr_file}")
+    #
+    #     return syn_nr, syn_sld
 
-    typer.echo(f"NR SLD generated curves saved at: \n\
-               mod sld file: {params.mod_sld_file}\n\
-                mod nr file: {params.mod_nr_file}")
 
-    return processed_nr, processed_sld_profile
-
-def preprocess(dproc:NRSLDDataProcessor,norm_stats_save_path: str)->Tuple[np.ndarray, np.ndarray]:
+def preprocess(dproc:NRSLDDataProcessor,norm_stats_to_be_save_path: str)->Tuple[np.ndarray, np.ndarray]:
     """
     Preprocess function normalization and remove Q from NR.
     :param dproc: DataProcessor, get nr,sld from load data
@@ -41,18 +57,12 @@ def preprocess(dproc:NRSLDDataProcessor,norm_stats_save_path: str)->Tuple[np.nda
     normalized_nr = dproc.normalize_nr()
     norm_stats = dproc.get_normalization_stats()
 
-    np.save(norm_stats_save_path, norm_stats, allow_pickle=True)
+    np.save(norm_stats_to_be_save_path, norm_stats, allow_pickle=True)
 
     # Only keep reflectivity, remove Q
     reshaped = dproc.reshape_nr_to_single_channel(normalized_nr)
 
     return reshaped,normalized_sld
-
-def load_nr_sld_model(model_path):
-    model = CNN()
-    model.load_state_dict(torch.load(model_path, map_location=DEVICE))
-
-    return model
 
 def load_normalization_stat(norm_stat_path)->dict:
     """

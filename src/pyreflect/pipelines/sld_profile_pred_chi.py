@@ -1,9 +1,8 @@
-import numpy as np
 import torch
 import pandas as pd
 
-from pyreflect.input import DataProcessor
-from pyreflect.models.config import DEVICE as device
+from src.pyreflect.input import DataProcessor
+from src.pyreflect.models.config import DEVICE as device
 
 def run_model_prediction(percep, autoencoder, X):
     """

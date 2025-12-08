@@ -6,10 +6,13 @@ TEST_PYPI_URL  := https://test.pypi.org/project/pyreflect/
 
 .PHONY: build clean upload-test bump-version
 
+install:
+	uv pip install -e .
+
 build: clean ## Build source and wheel distributions under dist/
 	$(PYTHON) -m build
 
-upload-test: bump-version build ## Bump version, rebuild, and upload to Test PyPI
+upload: bump-version build ## Bump version, rebuild, and upload to Test PyPI
 	$(PYTHON) -m twine upload --repository testpypi "$(DIST_DIR)"/*
 	@echo "✅ Uploaded to TestPyPI. Check release at: $(TEST_PYPI_URL)"
 

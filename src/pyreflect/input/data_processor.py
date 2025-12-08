@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 import torch
 
 class DataProcessor:
-    def __init__(self, seed=123):
+    def __init__(self, seed=42):
         """
         Base class for processing data.
         """
@@ -47,7 +47,7 @@ class DataProcessor:
         return [train_dataset,valid_dataset,test_dataset,train_loader, valid_loader, test_loader]
 
     @staticmethod
-    def normalize_xy_curves(curves, apply_log=False, min_max_stats=None) -> tuple[np.ndarray, dict]:
+    def normalize_xy_curves(curves, apply_log=False, min_max_stats=None) -> np.ndarray:
         """
         Normalize NR or SLD curves using global min/max or provided stats.
 
@@ -87,10 +87,35 @@ class DataProcessor:
 
         normalized_curves = np.stack([x_points, y_points], axis=1)
 
-        return normalized_curves, {
-            'x': {'min': min_valXNR, 'max': max_valXNR},
-            'y': {'min': min_valYNR, 'max': max_valYNR}
+        return normalized_curves
+
+    @staticmethod
+    def get_xy_norm_stats(self,data_curves):
+        curves = np.array(data_curves)
+
+        assert curves.ndim == 3 and curves.shape[1] == 2, \
+            f"Expected shape (N, 2, L), got {curves.shape}"
+
+        x_points = curves[:, 0, :]
+        y_points = curves[:, 1, :]
+
+        min_valXNR = np.min(x_points)
+        max_valXNR = np.max(x_points)
+        min_valYNR = np.min(y_points)
+        max_valYNR = np.max(y_points)
+
+        # norm stats
+        return {
+            'x':{
+                'min': min_valXNR,
+                'max': max_valXNR
+            },
+            'y':{
+                'min': min_valYNR,
+                'max': max_valYNR
+            }
         }
+
 
     @staticmethod
     def denormalize_xy_curves(norm_curves, stats, apply_exp=False):
@@ -118,7 +143,7 @@ class DataProcessor:
         return np.stack([x_orig, y_orig], axis=1)
 
 class SLDChiDataProcessor(DataProcessor):
-    def __init__(self, expt_sld_file_path, sld_file_path, chi_params_file_path, seed=123):
+    def __init__(self, expt_sld_file_path, sld_file_path, chi_params_file_path, seed=42):
         """
         Processes SLD and Chi parameter data.
         """
@@ -172,7 +197,7 @@ class SLDChiDataProcessor(DataProcessor):
         return self.sld_arr, self.params_arr
 
 class NRSLDDataProcessor(DataProcessor):
-    def __init__(self, nr_file_path=None, sld_file_path=None, seed=123):
+    def __init__(self, nr_file_path=None, sld_file_path=None, seed=42):
         """
         Processes NR and SLD curve data.
         """
@@ -181,8 +206,6 @@ class NRSLDDataProcessor(DataProcessor):
         self.sld_file_path = sld_file_path
         self._nr_arr = None
         self._sld_arr = None
-
-        self.norm_stats = dict(nr=None,sld=None) #min max normalization stats
 
     def load_data(self,new_nr_file=None, new_sld_file=None):
         """
@@ -206,15 +229,16 @@ class NRSLDDataProcessor(DataProcessor):
 
         return self
 
-    def normalize_nr(self, norm_stats =None):
+    def normalize_nr(self, norm_stats):
         """Normalizes NR curves."""
         if self._nr_arr is None:
             raise FileNotFoundError(f"NR file not loaded from path:{self.nr_file_path}")
 
-        if norm_stats is not None:
-            self._nr_arr,_ = DataProcessor.normalize_xy_curves(self._nr_arr, apply_log=True, min_max_stats= norm_stats)
-        else:
-            self._nr_arr,self.norm_stats['nr'] = DataProcessor.normalize_xy_curves(self._nr_arr,apply_log=True)
+        if norm_stats is None:
+            raise Exception("norm_stats is none.")
+
+        self._nr_arr,_ = DataProcessor.normalize_xy_curves(self._nr_arr, apply_log=True, min_max_stats= norm_stats)
+        self.norm_stats = norm_stats
 
         return self._nr_arr
 

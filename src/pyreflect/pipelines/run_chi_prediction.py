@@ -1,8 +1,7 @@
 from .sld_profile_pred_chi import run_model_prediction
 from .train_autoencoder_mlp_chi_pred import run_model_training
-from pyreflect.models.config import ChiPredTrainingParams
+from src.pyreflect.models.config import ChiPredTrainingParams
 import typer
-import pandas as pd
 
 from ..input import SLDChiDataProcessor
 

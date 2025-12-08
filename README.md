@@ -15,6 +15,7 @@ Prepare the Package Environment on HPC or Your Local Machine (Large Memory Requi
 
 run in cell:
 ```code
+!curl -fsSLo setup.sh https://raw.githubusercontent.com/williamQyq/pyreflect/main/setup.sh
 !bash setup.sh
 ```
 
@@ -42,10 +43,10 @@ Use the --force flag if the configuration has already been created and you want 
 Open `settings.yml` and update the file paths for your SLD profile data and Chi parameters
 
 ### **2️⃣.1️⃣ Training datasets and Train model 
-Generate training datasets using the example in [example_notebook_autoencoder.ipynb](pyreflect/example_notebooks/example_notebook_autoencoder.ipynb).  
+Generate training datasets using the example in [example_notebook_autoencoder.ipynb](examples/example_notebook_autoencoder.ipynb).  
 The memory usage should be properly managed by controlling the number of curves generated for training, as it will consume a large amount of memory.  
 
-Train the model using the example in [example_notebook_SLD_prediction.ipynb](pyreflect/example_notebooks/example_notebook_SLD_prediction.ipynb).
+Train the model using the example in [example_notebook_SLD_prediction.ipynb](examples/example_notebook_SLD_prediction.ipynb).
 
 ### **2️⃣.2️⃣ A simple Experimental Datasets - from real world lab 
 [datasets](datasets) contains processed experimental NR, its manual fit SLD profile data, and AE denoised experimental NR data. 

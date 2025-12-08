@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-import pyreflect.flows as workflow
+import src.pyreflect.pipelines as workflow
 
 INVALID_METHOD_ERROR = "Invalid method"
 
@@ -19,7 +19,7 @@ def init_settings(
             writable=True,
             resolve_path=True,
         ),
-    ] = Path("."), # default to current directory
+    ] = Path(""), # default to current directory
     force: bool = typer.Option(
         False, "--force", help="Force initialization even if settings.yml already exists."
     ),
@@ -44,7 +44,7 @@ def _run_cli(
             writable=True,
             resolve_path=True,
         )
-    ] = Path("."),
+    ] = Path(""),
     enable_chi_prediction: Annotated[
         bool, typer.Option(help="Run Chi prediction.")
     ]=False,
@@ -58,7 +58,7 @@ def _run_cli(
         typer.echo("Error: a valid config file(settings.yml) must be provided.")
         raise typer.Exit()
 
-    from pyreflect.config import load_config
+    from src.pyreflect.config import load_config
     config = load_config(root)
 
     """Run SLD data analysis for Chi params using the specified settings."""

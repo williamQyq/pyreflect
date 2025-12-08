@@ -1,7 +1,7 @@
 import torch
 import pandas as pd
-import pyreflect.models.autoencoder as ae
-from pyreflect.input.data_processor import DataProcessor
+import src.pyreflect.models.autoencoder as ae
+from src.pyreflect.input.data_processor import DataProcessor
 from . import mlp as mlp_module
 from .config import DEVICE as device
 

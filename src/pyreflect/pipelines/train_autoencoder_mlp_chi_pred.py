@@ -1,7 +1,7 @@
-from pyreflect.input import DataProcessor
-from pyreflect.models.chi_pred_model_trainer import ChiPredModelTrainer as ModelTrainer
-from pyreflect.models import mlp, autoencoder as ae
-from pyreflect.models.config import DEVICE
+from src.pyreflect.input import DataProcessor
+from src.pyreflect.models.chi_pred_model_trainer import ChiPredModelTrainer as ModelTrainer
+from src.pyreflect.models import mlp, autoencoder as ae
+from src.pyreflect.models.config import DEVICE
 import torch
 
 def run_model_training(
@@ -33,7 +33,7 @@ def run_model_training(
     # Initialize Model Trainer
     trainer = ModelTrainer(
         autoencoder=ae.VariationalAutoencoder(input_dim, latent_dim).to(DEVICE),
-        mlp=mlp.deep_MLP(latent_dim,num_params).to(DEVICE),
+        mlp=mlp.deep_MLP(latent_dim, num_params).to(DEVICE),
         batch_size=batch_size,
         ae_epochs=ae_epochs,
         mlp_epochs= mlp_epochs,

@@ -1,9 +1,9 @@
 from pathlib import Path
 import typer
 
-from pyreflect.models.config import NRSLDCurvesGeneratorParams,NRSLDModelTrainerParams,NRSLDModelInferenceParams
-import pyreflect.flows.nr_predict_sld as workflow
-from .nr_predict_sld import load_normalization_stat
+from src.pyreflect.models.config import NRSLDCurvesGeneratorParams,NRSLDModelTrainerParams,NRSLDModelInferenceParams
+import src.pyreflect.pipelines.reflectivity_pipeline as workflow
+from .reflectivity_pipeline import load_normalization_stat
 
 from ..config.errors import ConfigMissingKeyError
 from ..input import NRSLDDataProcessor

@@ -3,11 +3,7 @@ from pathlib import Path
 import torch
 import typer
 
-from pyreflect.config.errors import *
-
-DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-print(f'Selected device for model training: {DEVICE}')
-
+from src.pyreflect.config.errors import ConfigMissingKeyError
 
 def _resolve_file(root: str | Path, file_path: str | None):
     if file_path is None:
@@ -76,7 +72,7 @@ class ChiPredTrainingParams:
 
 @dataclass
 class NRSLDCurvesGeneratorParams:
-    root: str | Path = Path(".")
+    root: str | Path = Path("")
     mod_nr_file: str | Path = None
     mod_sld_file: str | Path = None
     num_curves: int = None
@@ -110,7 +106,7 @@ class NRSLDCurvesGeneratorParams:
 @dataclass
 class NRSLDModelTrainerParams:
     """Handles parameters for training NR-SLD prediction models."""
-    root:Path = Path(".")
+    root:Path = Path("")
     model_path: str|Path = None
     nr_file: str|Path = None
     sld_file: str|Path = None
@@ -140,8 +136,8 @@ class NRSLDModelTrainerParams:
                 _validate_file(self.nr_file)
                 _validate_file(self.sld_file)
 
-                required_keys = ["batch_size", "epochs", "layers", "dropout"]
-                _validate_config(nr_section["models"],[required_keys])
+                required_keys = ["batch_size", "epochs", "num_film_layers","dropout"]
+                _validate_config(nr_section["models"],required_keys)
 
                 # validate model training parameters
                 model_config = nr_section["models"]
@@ -149,7 +145,7 @@ class NRSLDModelTrainerParams:
                 self.batch_size = model_config.get("batch_size")
                 self.epochs = model_config.get("epochs")
 
-                self.layers = model_config.get("layers")
+                self.layers = model_config.get("num_film_layers")
                 self.dropout = model_config.get("dropout")
 
             else:
@@ -163,7 +159,7 @@ class NRSLDModelTrainerParams:
 
 @dataclass
 class NRSLDModelInferenceParams:
-    root:Path = Path(".")
+    root:Path = Path("")
     experimental_nr: str | Path = None
     normalization_stats: str | Path = None
 
