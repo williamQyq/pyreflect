@@ -9,6 +9,11 @@ Including **Chi parameters prediction** from **SLD profile data** and **SLD prof
 - Predicting SLD Profile by training a CNN
 - Predicting **Chi** parameters by training a combined Autoencoder and MLP model.
 
+## **Prerequest**
+
+Conda  
+Python >=3.10
+
 ## **Quick Start Guide**  
 
 Prepare the Package Environment on HPC or Your Local Machine (Large Memory Required). The `setup.sh` creates a Jupyter kernel environment named `PyreflectEnvironment`.

@@ -1,13 +1,36 @@
 #!/bin/bash
+set -euo pipefail
 
 # === Environment variables ===
 ENV_NAME="pyreflectenv"
 DISPLAY_NAME="PyreflectEnvironment"
 
-# === Load module ===
-module load conda
+# === Detect platform (linux/windows) ===
+PLATFORM="unknown"
+case "${OSTYPE:-}" in
+    linux*) PLATFORM="linux" ;;
+    msys*|cygwin*|win32*) PLATFORM="windows" ;;
+    *) PLATFORM="unknown" ;;
+esac
 
-# # === Ensure conda shell functions are available ===
+echo "🔎 Detected platform: ${PLATFORM}"
+
+# === Load module when available (common on linux clusters) ===
+if [[ "$PLATFORM" == "linux" ]] && type module >/dev/null 2>&1; then
+    module load conda
+elif [[ "$PLATFORM" == "linux" ]]; then
+    echo "ℹ️ 'module' command not found; assuming Conda is already on PATH."
+else
+    echo "ℹ️ Skipping 'module load conda' for platform '${PLATFORM}'."
+fi
+
+# === Ensure conda is installed before proceeding ===
+if ! command -v conda >/dev/null 2>&1; then
+    echo "❌ Conda is not installed or not on PATH. Please install Conda before running setup." >&2
+    exit 1
+fi
+
+# === Ensure conda shell functions are available ===
 eval "$(conda shell.bash hook)"
 
 # === Check if conda environment exists ===
