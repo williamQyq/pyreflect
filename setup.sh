@@ -1,84 +1,73 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bash
+set -e
 
-# === Environment variables ===
-ENV_NAME="pyreflectenv"
-DISPLAY_NAME="PyreflectEnvironment"
+ENV_NAME="pyreflect"
+PYTHON_VERSION="3.10"
 
-# === Detect platform ===
-PLATFORM="unknown"
-case "${OSTYPE:-}" in
-    linux*) PLATFORM="linux" ;;
-    msys*|cygwin*|win32*) PLATFORM="windows" ;;
-    *) PLATFORM="unknown" ;;
-esac
+echo "=== Checking environment ==="
 
-IS_WSL=0
-if [[ "$PLATFORM" == "linux" ]] && grep -qi microsoft /proc/version 2>/dev/null; then
-    IS_WSL=1
-fi
-
-echo "🔎 Detected platform: ${PLATFORM}${IS_WSL:+ (WSL)}"
-
-# === Helper to source conda when not on PATH ===
-declare -a COMMON_CONDA_PREFIXES=()
-if [[ -n "${CONDA_PREFIX:-}" ]]; then
-    COMMON_CONDA_PREFIXES+=("${CONDA_PREFIX}")
-fi
-if [[ -n "${MAMBA_ROOT_PREFIX:-}" ]]; then
-    COMMON_CONDA_PREFIXES+=("${MAMBA_ROOT_PREFIX}")
-fi
-COMMON_CONDA_PREFIXES+=("$HOME/miniconda3" "$HOME/mambaforge" "$HOME/anaconda3" "/opt/conda")
-
-source_conda_from_known_locations() {
-    for prefix in "${COMMON_CONDA_PREFIXES[@]}"; do
-        local conda_init="${prefix}/etc/profile.d/conda.sh"
-        if [[ -f "$conda_init" ]]; then
-            echo "ℹ️ Loading Conda initialization script from '${conda_init}'."
-            # shellcheck disable=SC1090
-            source "$conda_init"
-            return 0
-        fi
-    done
-    return 1
-}
-
-# === Load module when available (common on linux clusters) ===
-if [[ "$PLATFORM" == "linux" ]] && type module >/dev/null 2>&1; then
-    module load conda
-elif [[ "$PLATFORM" == "linux" ]]; then
-    echo "ℹ️ 'module' command not found; attempting to locate Conda manually."
+# -----------------------------
+# 1. Handle `module` command
+# -----------------------------
+if ! command -v module >/dev/null 2>&1; then
+    echo "[INFO] 'module' command not found. Assuming non-HPC environment."
 else
-    echo "ℹ️ Skipping 'module load conda' for platform '${PLATFORM}'."
+    echo "[INFO] 'module' command found."
+    # Optional:
+    # module load anaconda
 fi
 
+# -----------------------------
+# 2. Check Conda availability
+# -----------------------------
 if ! command -v conda >/dev/null 2>&1; then
-    source_conda_from_known_locations || true
-fi
-
-# === Ensure conda is installed before proceeding ===
-if ! command -v conda >/dev/null 2>&1; then
-    echo "❌ Conda is not installed or not on PATH. Please install Conda before running setup." >&2
+    echo "[ERROR] Conda not found in PATH."
     exit 1
 fi
 
-# === Ensure conda shell functions are available ===
-eval "$(conda shell.bash hook)"
+echo "[OK] Conda detected: $(conda --version)"
 
-# === Check if conda environment exists ===
-if conda env list | grep -qE "^${ENV_NAME}[[:space:]]"; then
-    echo "✅ Conda environment '${ENV_NAME}' already exists."
+# -----------------------------
+# 3. Initialize Conda for shell
+# -----------------------------
+CONDA_BASE=$(conda info --base)
+
+# shellcheck disable=SC1091
+source "$CONDA_BASE/etc/profile.d/conda.sh"
+
+echo "[OK] Conda shell initialized."
+
+# -----------------------------
+# 4. Create environment if needed
+# -----------------------------
+if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
+    echo "[INFO] Conda environment '$ENV_NAME' already exists."
 else
-    echo "🔧 Creating conda environment '${ENV_NAME}' with Python 3.11..."
-    conda create -y -n "${ENV_NAME}" python=3.11
+    echo "[INFO] Creating Conda environment '$ENV_NAME' (Python $PYTHON_VERSION)..."
+    conda create -y -n "$ENV_NAME" python="$PYTHON_VERSION"
 fi
 
-# === Activate the conda environment ===
-conda activate "${ENV_NAME}"
+# -----------------------------
+# 5. Activate environment
+# -----------------------------
+echo "[INFO] Activating environment '$ENV_NAME'"
+conda activate "$ENV_NAME"
 
-conda install -y -c conda-forge ipykernel
+# -----------------------------
+# 6. Install ipykernel
+# -----------------------------
+echo "[INFO] Installing ipykernel..."
+conda install -y ipykernel
 
+# -----------------------------
+# 7. Register Jupyter kernel
+# -----------------------------
+echo "[INFO] Registering Jupyter kernel: Python ($ENV_NAME)"
 
-echo "🔧 Creating Jupyter kernel '${ENV_NAME}'..."
-python -m ipykernel install --user --name "${ENV_NAME}" --display-name "${DISPLAY_NAME}"
-echo "✅ Created Jupyter kernel '${DISPLAY_NAME}'."
+python -m ipykernel install \
+    --user \
+    --name "$ENV_NAME" \
+    --display-name "Python ($ENV_NAME)"
+
+echo "=== pyreflect environment setup complete ==="
+echo "You can now select 'Python ($ENV_NAME)' in Jupyter."
