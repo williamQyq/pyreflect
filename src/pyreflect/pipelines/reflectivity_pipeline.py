@@ -5,15 +5,15 @@ import numpy as np
 import torch
 import typer
 
-from src.pyreflect.config.runtime import DEVICE
-from src.pyreflect.input.data_processor import DataProcessor, NRSLDDataProcessor
-from src.pyreflect.input.reflectivity_data_generator import ReflectivityDataGenerator
-from src.pyreflect.models.cnn import CNN
-from src.pyreflect.models.config import (
+from ..config.runtime import DEVICE
+from ..input.data_processor import DataProcessor, NRSLDDataProcessor
+from ..input.reflectivity_data_generator import ReflectivityDataGenerator
+from ..models.cnn import CNN
+from ..models.config import (
     NRSLDCurvesGeneratorParams,
     NRSLDModelTrainerParams,
 )
-from src.pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
+from ..models.nr_sld_model_trainer import NRSLDModelTrainer
 
 
 def _compute_norm_stats(curves: np.ndarray) -> dict:

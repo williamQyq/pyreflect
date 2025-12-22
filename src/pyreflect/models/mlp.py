@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 from torch import nn
-from .config import DEVICE
+from ..config.runtime import DEVICE
 
 # Defining a Multilayer Perceptron, MLP.
 class MLP(nn.Module):

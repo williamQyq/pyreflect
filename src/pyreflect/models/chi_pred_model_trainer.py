@@ -1,9 +1,9 @@
 import torch
 import pandas as pd
-import src.pyreflect.models.autoencoder as ae
-from src.pyreflect.input.data_processor import DataProcessor
+from . import autoencoder as ae
+from ..input.data_processor import DataProcessor
 from . import mlp as mlp_module
-from .config import DEVICE as device
+from ..config.runtime import DEVICE as device
 
 class ChiPredModelTrainer:
     def __init__(self, autoencoder, mlp, batch_size, ae_epochs, mlp_epochs, loss_fn, latent_dim,

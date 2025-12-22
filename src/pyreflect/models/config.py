@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 import typer
 
-from src.pyreflect.config.errors import ConfigMissingKeyError
+from ..config.errors import ConfigMissingKeyError
 
 def _resolve_file(root: str | Path, file_path: str | None):
     if file_path is None:

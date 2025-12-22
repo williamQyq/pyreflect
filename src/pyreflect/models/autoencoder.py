@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # set processing device
-from .config import DEVICE as device
+from ..config.runtime import DEVICE as device
 
 # Encoder class, takes in input data dimension and desired latent space size
 class Encoder(nn.Module):

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import torch
-from .config import DEVICE
+from ..config.runtime import DEVICE
 
 class ModelTrainer:
     def __init__(self,batch_size, epochs):

@@ -1,6 +1,6 @@
-from src.pyreflect.input import DataProcessor
+from ..input import DataProcessor
 
-from .config import DEVICE
+from ..config.runtime import DEVICE
 import torch
 from .cnn import CNN
 

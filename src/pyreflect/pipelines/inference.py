@@ -1,6 +1,6 @@
 import torch
-from src.pyreflect.models.cnn import CNN
-from src.pyreflect.config.runtime import DEVICE
+from ..models.cnn import CNN
+from ..config.runtime import DEVICE
 
 class Predictor:
     def __init__(self, spec):

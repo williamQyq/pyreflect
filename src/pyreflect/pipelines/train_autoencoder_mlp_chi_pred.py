@@ -1,7 +1,7 @@
-from src.pyreflect.input import DataProcessor
-from src.pyreflect.models.chi_pred_model_trainer import ChiPredModelTrainer as ModelTrainer
-from src.pyreflect.models import mlp, autoencoder as ae
-from src.pyreflect.models.config import DEVICE
+from ..input import DataProcessor
+from ..models.chi_pred_model_trainer import ChiPredModelTrainer as ModelTrainer
+from ..models import mlp, autoencoder as ae
+from ..models.config import DEVICE
 import torch
 
 def run_model_training(

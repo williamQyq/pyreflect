@@ -1,6 +1,6 @@
 from pathlib import Path
 import typer
-from src.pyreflect.cli.init_content import INIT_YAML_CONTENT
+from .init_content import INIT_YAML_CONTENT
 
 
 def initialize_project_at(path:Path, force:bool)->None:
