@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-import src.pyreflect.pipelines as workflow
+from .. import pipelines as workflow
 
 INVALID_METHOD_ERROR = "Invalid method"
 
@@ -58,7 +58,7 @@ def _run_cli(
         typer.echo("Error: a valid config file(settings.yml) must be provided.")
         raise typer.Exit()
 
-    from src.pyreflect.config import load_config
+    from ..config import load_config
     config = load_config(root)
 
     """Run SLD data analysis for Chi params using the specified settings."""
