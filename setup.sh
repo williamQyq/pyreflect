@@ -9,7 +9,7 @@ echo "=== Setting up Conda environment: $ENV_NAME ==="
 # -----------------------------
 # 1. Detect OS (via Python)
 # -----------------------------
-OS_NAME=$(python - <<'EOF'
+OS_NAME=$(python3 - <<'EOF'
 import os
 print(os.name)
 EOF
@@ -24,29 +24,32 @@ fi
 # -----------------------------
 # 2. Fix Conda path (Windows)
 # -----------------------------
-if [ "$IS_WINDOWS" = true ]; then
-    CONDA_ROOT="/c/Users/qyqfi/miniconda3"
-    export PATH="$CONDA_ROOT/Scripts:$PATH"
+if [[ "$IS_WINDOWS" == "true" ]]; then
+    for d in "$HOME/miniconda3" "$HOME/anaconda3"; do
+        if [[ -d "$d" ]]; then
+            export PATH="$d/Scripts:$d/condabin:$PATH"
+            break
+        fi
+    done
 fi
 
 # -----------------------------
 # 3. Check Conda
 # -----------------------------
-if ! command -v conda >/dev/null 2>&1; then
-    echo "[ERROR] Conda not found in PATH"
+CONDA_BASE="$(conda info --base 2>/dev/null)"
+
+if [[ -z "$CONDA_BASE" ]]; then
+    echo "[ERROR] Conda not found"
     exit 1
 fi
-
-echo "[OK] Conda found: $(conda --version)"
 
 # -----------------------------
 # 4. Init Conda shell
 # -----------------------------
-if [ "$IS_WINDOWS" = true ]; then
-    source "/c/Users/qyqfi/miniconda3/etc/profile.d/conda.sh"
-else
-    source "$(conda info --base)/etc/profile.d/conda.sh"
-fi
+# shellcheck disable=SC1091
+source "$CONDA_BASE/etc/profile.d/conda.sh"
+
+echo "[OK] Conda found: $(conda --version)"
 
 # -----------------------------
 # 5. Create env if missing
@@ -71,7 +74,7 @@ conda install -y ipykernel
 # -----------------------------
 # 8. Register kernel
 # -----------------------------
-python -m ipykernel install \
+python3 -m ipykernel install \
     --user \
     --name "$ENV_NAME" \
     --display-name "Python ($ENV_NAME)"
