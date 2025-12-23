@@ -24,5 +24,5 @@ def _search_for_config_in_root_dir(root:str|Path) ->Path | None:
     return None
 
 def _parse(config_path:str | None) -> dict:
-    with open(config_path, "r") as f:
+    with open(config_path, "r",encoding="utf-8") as f:
         return yaml.safe_load(f)

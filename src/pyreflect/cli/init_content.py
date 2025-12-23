@@ -34,10 +34,8 @@ sld_predict_chi:
 ### ⚙️ NR-SLD profile settings ###
 nr_predict_sld:
     file:
-        experimental_nr_file: data/curves/experimental_nr_curves.npy    # Experimental nr data for sld prediction
-        nr_curves_poly: data/curves/nr_curves_poly.npy   #Generated nr curves for training
-        sld_curves_poly: data/curves/sld_curves_poly.npy    #Generated sld curves for training
-        reflectivity_model_bounds: data/curves/reflectivity_model_bounds.json   #Bounds of the reflectivity model properties
+        nr_train: data/curves/nr_train.npy   #Generated nr curves for training
+        sld_train: data/curves/sld_train.npy    #Generated sld curves for training
         
     models:
         model: data/trained_nr_sld_model.pth # Path to save and load the CNN model
@@ -45,6 +43,7 @@ nr_predict_sld:
         num_curves: 50000   # Number of generated curves for training 
         epochs: 10 # CNN training epochs
         batch_size: 32 # Batch size for training
+        layers: 12 # model layers
         dropout: 0.5 # Dropout rate for training
         normalization_stats: data/normalization_stat.npy   #Normalization statistics
 """

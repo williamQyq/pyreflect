@@ -1,7 +1,7 @@
 from ..input import DataProcessor
 from ..models.chi_pred_model_trainer import ChiPredModelTrainer as ModelTrainer
 from ..models import mlp, autoencoder as ae
-from ..models.config import DEVICE
+from ..config.runtime import DEVICE
 import torch
 
 def run_model_training(
