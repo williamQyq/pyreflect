@@ -2,7 +2,7 @@ import torch
 import pandas as pd
 
 from ..input import DataProcessor
-from ..models.config import DEVICE as device
+from ..config.runtime import DEVICE as device
 
 def run_model_prediction(percep, autoencoder, X):
     """

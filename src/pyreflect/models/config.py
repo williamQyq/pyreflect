@@ -86,8 +86,8 @@ class NRSLDCurvesGeneratorParams:
             self.root = Path(self._config["root"])
 
             try:
-                self.mod_nr_file = _resolve_file(self.root, nr_section["file"]["nr_curves_poly"])
-                self.mod_sld_file = _resolve_file(self.root, nr_section["file"]["sld_curves_poly"])
+                self.mod_nr_file = _resolve_file(self.root, nr_section["file"]["nr_train"])
+                self.mod_sld_file = _resolve_file(self.root, nr_section["file"]["sld_train"])
                 self.num_curves = nr_section["models"].get("num_curves", self.num_curves)
                 self.num_film_layers = nr_section["models"].get("num_film_layers", self.num_film_layers)
             except KeyError as e:
@@ -128,15 +128,15 @@ class NRSLDModelTrainerParams:
                 self.root = root
                 # path to save the generated data file and model
                 self.model_path = _resolve_file(root,nr_section["models"]["model"])
-                self.nr_file = _resolve_file(root, nr_section["file"]["nr_curves_poly"])
-                self.sld_file = _resolve_file(root, nr_section["file"]["sld_curves_poly"])
+                self.nr_file = _resolve_file(root, nr_section["file"]["nr_train"])
+                self.sld_file = _resolve_file(root, nr_section["file"]["sld_train"])
                 self.normalization_stats = _resolve_file(root, nr_section["models"]["normalization_stats"])
 
                 #file must exist
                 _validate_file(self.nr_file)
                 _validate_file(self.sld_file)
 
-                required_keys = ["batch_size", "epochs", "num_film_layers","dropout"]
+                required_keys = ["batch_size", "epochs", "layers","dropout"]
                 _validate_config(nr_section["models"],required_keys)
 
                 # validate model training parameters
@@ -145,7 +145,7 @@ class NRSLDModelTrainerParams:
                 self.batch_size = model_config.get("batch_size")
                 self.epochs = model_config.get("epochs")
 
-                self.layers = model_config.get("num_film_layers")
+                self.layers = model_config.get("layers")
                 self.dropout = model_config.get("dropout")
 
             else:
