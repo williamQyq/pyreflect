@@ -1,6 +1,6 @@
 ## Dataset Overview
 
-This folder contains reference data and pretrained assets for the NR -> SLD workflow. Arrays are stored as NumPy files with shape (N, 2, L), where channel 0 is the x-axis (q for NR, depth for SLD) and channel 1 holds the curve values.
+The data files is too large to be put in repo.
 
 ### Contents
 - `curves/`: synthetic 5-layer NR/SLD pairs used in examples.
