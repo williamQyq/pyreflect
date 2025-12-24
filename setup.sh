@@ -9,7 +9,7 @@ echo "=== Setting up Conda environment: $ENV_NAME ==="
 # -----------------------------
 # 1. Detect OS (via Python)
 # -----------------------------
-OS_NAME=$(python3 - <<'EOF'
+OS_NAME=$(python - <<'EOF'
 import os
 print(os.name)
 EOF
@@ -20,6 +20,8 @@ if [[ "$OS_NAME" == "nt" ]]; then
 else
     IS_WINDOWS=false
 fi
+
+echo "Is Windows: $IS_WINDOWS"
 
 # -----------------------------
 # 2. Fix Conda path (Windows)
@@ -74,7 +76,7 @@ conda install -y ipykernel
 # -----------------------------
 # 8. Register kernel
 # -----------------------------
-python3 -m ipykernel install \
+python -m ipykernel install \
     --user \
     --name "$ENV_NAME" \
     --display-name "Python ($ENV_NAME)"
