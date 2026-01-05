@@ -4,7 +4,7 @@ from typing import List, Tuple
 import typer
 from tqdm.auto import tqdm
 from scipy.stats import qmc
-from scipy.interpolate import CubicSpline
+# from scipy.interpolate import CubicSpline
 from refl1d.names import *
 import numpy as np
 import os
@@ -78,10 +78,7 @@ def calculate_reflectivity(q, model_description, q_resolution=0.0294855):
     z, sld, _ = expt.smooth_profile()
     #this makes all SLD curves have 900 datapoints per curve
     zNew = np.linspace(z[0], z[-1], num=900)
-    newCurve = CubicSpline(z, sld)
-    sldNew = []
-    for i in range(zNew.shape[0]):
-      sldNew.append(newCurve(zNew[i]))
+    sldNew = np.interp(zNew, z, sld)  # linear, no overshoot
     return model_description['scale'] * r, zNew, sldNew
 
 
