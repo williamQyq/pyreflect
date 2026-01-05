@@ -161,7 +161,10 @@ def compute_nr_from_sld(
             raise ValueError("sigma must be scalar or length len(rrho)-1")
 
     # --- Reflectivity ---
-    r = reflamp(Q, w, rrho, iirho, sigma_arr)
+    # refl1d's low-level routine expects kz (1/Å), not Q (1/Å).
+    # For specular reflectometry, Q = 2*kz.
+    kz = Q / 2.0
+    r = reflamp(kz, w, rrho, iirho, sigma_arr)
     R = np.abs(r) ** 2
 
     # --- Instrument resolution convolution (only if you want it) ---
