@@ -96,7 +96,7 @@ python -m pip install --upgrade pip
 if [[ -f "pyproject.toml" ]]; then
     python -m pip install -e .
 else
-    python -m pip install pyreflect
+    pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.4.1
 fi
 
 
