@@ -84,7 +84,6 @@ echo "[INFO] Installing scientific dependencies via conda-forge"
 conda install -y -c conda-forge \
     numpy \
     scipy \
-    refnx \
     refl1d \
     numba \
     llvmlite

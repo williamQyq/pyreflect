@@ -32,7 +32,7 @@ For reliability across platforms, **Conda is the recommended installation method
 
 ---
 
-## ✅ Recommended: Conda (Local or HPC)
+## Option 1. ✅ Recommended: Conda (Local or HPC)
 
 ### 1. Create and activate a Conda environment
 
@@ -51,7 +51,7 @@ conda install -c conda-forge \
 ### 3. Install pyreflect
 
 ```bash
-pip install pyreflect
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.4.1
 ```
 
 After installation, you can access the CLI via:
@@ -66,7 +66,7 @@ For GPU-accelerated training and inference, install a CUDA-enabled PyTorch build
 
 ---
 
-## 🛠 Automated setup (using `setup.sh`)
+## Option 2. 🛠 Automated setup (using `setup.sh`)
 
 This repository provides a helper script [`setup.sh`](setup.sh) that:
 
@@ -89,7 +89,7 @@ After it completes:
 
 ---
 
-## ⚠️ Advanced: pip-only installation (not recommended on Windows)
+## ⚠️ pip-only installation (not recommended on Windows)
 
 A pure `pip` installation may work on Linux or macOS systems with a full build toolchain.  
 On Windows, this may require Microsoft C++ Build Tools and is **not** recommended.
@@ -98,7 +98,7 @@ On Windows, this may require Microsoft C++ Build Tools and is **not** recommende
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install --upgrade pip
-pip install pyreflect
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.4.1
 ```
 
 If installation fails due to native extensions, switch to the Conda workflow above.
