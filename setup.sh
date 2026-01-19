@@ -74,7 +74,48 @@ conda activate "$ENV_NAME"
 conda install -y ipykernel
 
 # -----------------------------
-# 8. Register kernel
+# 8. Install pyreflect and dependencies
+#    - If running inside the git repo (pyproject.toml present), do a
+#      development/editable install: `pip install -e .`
+#    - Otherwise, install the published package from PyPI.
+# -----------------------------
+echo "[INFO] Installing scientific dependencies via conda-forge"
+
+conda install -y -c conda-forge \
+    numpy \
+    scipy \
+    refnx \
+    refl1d \
+    numba \
+    llvmlite
+
+echo "[INFO] Installing remaining Python deps via pip"
+
+python -m pip install --upgrade pip
+
+if [[ -f "pyproject.toml" ]]; then
+    python -m pip install -e .
+else
+    pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.4.1
+fi
+
+
+# -----------------------------
+# 9. Optional: Try to install CUDA-enabled PyTorch
+#    This is a best-effort step; failures will not abort the script.
+#    On HPC systems without GPU access or where CUDA/toolchain is
+#    managed separately, this section can simply be ignored.
+# -----------------------------
+echo "[INFO] Attempting to install CUDA-enabled PyTorch (optional)"
+
+if conda install -y -c pytorch -c nvidia pytorch pytorch-cuda=12.1 2>/dev/null; then
+    echo "[OK] Installed CUDA-enabled PyTorch via conda (pytorch + pytorch-cuda=12.1)."
+else
+    echo "[WARN] Could not install CUDA-enabled PyTorch with conda. Keeping CPU-only setup."
+fi
+
+# -----------------------------
+# 10. Register Jupyter kernel for this environment
 # -----------------------------
 python -m ipykernel install \
     --user \
@@ -82,4 +123,4 @@ python -m ipykernel install \
     --display-name "Python ($ENV_NAME)"
 
 echo "=== DONE ==="
-echo "Select 'Python ($ENV_NAME)' in Jupyter"
+echo "Select 'Python ($ENV_NAME)' in Jupyter and you're ready to use pyreflect."
