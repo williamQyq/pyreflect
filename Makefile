@@ -13,7 +13,7 @@ build: clean ## Build source and wheel distributions under dist/
 	$(PYTHON) -m build
 
 upload: bump-version build ## Bump version, rebuild, and upload to Test PyPI
-	$(PYTHON) -m twine upload --verbose --repository testpypi "$(DIST_DIR)"/*
+	$(PYTHON) -m twine upload --verbose --repository pypi "$(DIST_DIR)"/*
 	@echo "✅ Uploaded to PyPI. Check release at: $(TEST_PYPI_URL)"
 
 bump-version: ## Increment the patch version inside pyproject.toml using sed

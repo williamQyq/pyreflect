@@ -156,8 +156,8 @@ This project builds on work by:
 
 ## Author
 
-Yuqing Qiao (William) – Maintainer and developer of this package
-Shanshou Li - Developer
+Yuqing Qiao (William) – Maintainer and developer of this package  
+Shanshou Li - Developer  
 Hudson Kass - Developer
 
 
