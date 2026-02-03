@@ -51,7 +51,7 @@ conda install -c conda-forge \
 ### 3. Install pyreflect
 
 ```bash
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.4.1
+pip install pyreflect-nr
 ```
 
 After installation, you can access the CLI via:
@@ -98,7 +98,7 @@ On Windows, this may require Microsoft C++ Build Tools and is **not** recommende
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install --upgrade pip
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple pyreflect==1.4.1
+pip install pyreflect-nr
 ```
 
 If installation fails due to native extensions, switch to the Conda workflow above.
@@ -151,11 +151,13 @@ This project builds on work by:
 - Brian Qu ([NR-SLD-CNN](https://github.com/BBQ591/NR-SLD-CNN))  
 - Dr. Rajeev Kumar  
 - Prof. Miguel Fuentes-Cabrera ([NR-SCFT-ML](https://github.com/miguel-fc/NR-SCFT-ML))
+- Shanshou Li
 - Hudson Kass
 
 ## Author
 
 Yuqing Qiao (William) – Maintainer and developer of this package
+Shanshou Li - Developer
 Hudson Kass - Developer
 
 
