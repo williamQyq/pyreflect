@@ -46,10 +46,10 @@ class ReflectivityDataGenerator:
         nr_curves = []
         sld_curves = []
         for i in range(len(self.model._smooth_array)):
-            nr_curves.append(np.array([self.model.q,self.model._refl_array[i]]))
-            sld_curves.append(np.array(self.model._smooth_array[i]))
+            nr_curves.append(np.array([self.model.q,self.model._refl_array[i]],dtype=np.float32))
+            sld_curves.append(np.array(self.model._smooth_array[i],dtype=np.float32))
 
-        return np.stack(nr_curves), np.stack(sld_curves)
+        return np.stack(nr_curves).astype(np.float32), np.stack(sld_curves).astype(np.float32)
 
 
 def calculate_reflectivity(q, model_description, q_resolution=0.0294855):

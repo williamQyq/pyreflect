@@ -129,10 +129,11 @@ python -m pyreflect --help
 
 Example notebooks are available in the `examples` directory:
 
+- [examples/example_reflectivity_pipeline.ipynb](examples/example_reflectivity_pipeline.ipynb) – end-to-end NR → SLD pipeline for Experimental Data
+- [examples/example_reflectivity_pipeline.ipynb](examples/example_reflectivity_pipeline.ipynb) – end-to-end NR → SLD pipeline for Simulated Data
 - [examples/example_notebook_generate_training_datasets.ipynb](examples/example_notebook_generate_training_datasets.ipynb) – synthetic NR/SLD dataset generation  
 - [examples/example_notebook_autoencoder.ipynb](examples/example_notebook_autoencoder.ipynb) – Autoencoder + MLP workflow for Chi prediction  
 - [examples/example_notebook_PCA_NR_check.ipynb](examples/example_notebook_PCA_NR_check.ipynb) – NR data exploration and PCA  
-- [examples/example_reflectivity_pipeline.ipynb](examples/example_reflectivity_pipeline.ipynb) – end-to-end NR → SLD pipeline  
 
 Tutorial video:
 
@@ -153,11 +154,11 @@ This project builds on work by:
 - Prof. Miguel Fuentes-Cabrera ([NR-SCFT-ML](https://github.com/miguel-fc/NR-SCFT-ML))
 - Shanshou Li
 - Hudson Kass
+- Francisco Jimenez
 
 ## Author
 
-Yuqing Qiao (William) – Maintainer and developer of this package  
+Yuqing Qiao (William) – Maintainer and developer  
 Shanshou Li - Developer  
 Hudson Kass - Developer
-
-
+Francisco Jimenez - Validator

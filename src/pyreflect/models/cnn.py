@@ -1,6 +1,3 @@
-import torch
-from torch import nn
-import torch
 import torch.nn as nn
 
 # Custom SpatialDropout1D for 1D CNN
@@ -44,5 +41,5 @@ class CNN(nn.Module):
         x = x.reshape(x.shape[0], -1)
         x = self.linear1(x)
         x = x.reshape(-1, 2, 900)
-        # (x, 2, 2000)
-        return torch.sigmoid(x)
+
+        return x
