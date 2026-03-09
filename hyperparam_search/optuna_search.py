@@ -15,16 +15,16 @@ import pyreflect.pipelines.reflectivity_pipeline as workflow
 
 # Configuration
 PROJECT_ROOT = Path("../master_training_data")
-WANDB_PROJECT = "new-pyreflect-overfitting"  # Your new W&B project
+WANDB_PROJECT = "new-pyreflect-overfitting"
 N_TRIALS = 20
-EPOCHS_PER_TRIAL = 7
+EPOCHS_PER_TRIAL = 10
 
 
 def objective(trial):
     """Optuna objective - tries different hyperparameters"""
     
     layers = trial.suggest_int("layers", 6, 12)
-    dropout = trial.suggest_float("dropout", 0.3, 0.7)
+    dropout = trial.suggest_float("dropout", 0.1, 0.4)
     batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
     
     print(f"\n{'='*60}")

@@ -6,7 +6,7 @@ import modal
 
 # Configuration
 N_TRIALS = 20
-EPOCHS_PER_TRIAL = 7
+EPOCHS_PER_TRIAL = 10
 WANDB_PROJECT = "new-pyreflect-overfitting"
 
 app = modal.App("pyreflect-optuna-new")
@@ -114,7 +114,7 @@ def run_optuna_search():
     
     def objective(trial):
         layers = trial.suggest_int("layers", 6, 12)
-        dropout = trial.suggest_float("dropout", 0.3, 0.7)
+        dropout = trial.suggest_float("dropout", 0.1, 0.4)
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
         
         print(f"\nTrial {trial.number + 1}/{N_TRIALS}: layers={layers}, dropout={dropout:.2f}, batch={batch_size}")
