@@ -7,3 +7,8 @@ __pycache__/
 dist/
 PLAN.md
 .ipynb_checkpoints/
+
+experimental_data/
+.claude/
+
+*.pth
