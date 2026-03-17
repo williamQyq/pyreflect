@@ -14,18 +14,18 @@ from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
 import pyreflect.pipelines.reflectivity_pipeline as workflow
 
 # Configuration
-PROJECT_ROOT = Path("../master_training_data")
-WANDB_PROJECT = "new-pyreflect-overfitting"
-N_TRIALS = 20
+PROJECT_ROOT = Path("../150-thousand-curves")  # Change from ../master_training_data
+WANDB_PROJECT = "final-pyreflect-overfitting"
+N_TRIALS = 6
 EPOCHS_PER_TRIAL = 10
 
 
 def objective(trial):
     """Optuna objective - tries different hyperparameters"""
     
-    layers = trial.suggest_int("layers", 6, 12)
-    dropout = trial.suggest_float("dropout", 0.1, 0.4)
-    batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+    layers = 6
+    dropout = trial.suggest_float("dropout", 0.08, 0.12)
+    batch_size = trial.suggest_categorical("batch_size", [64, 128])
     
     print(f"\n{'='*60}")
     print(f"Trial {trial.number + 1}/{N_TRIALS}")

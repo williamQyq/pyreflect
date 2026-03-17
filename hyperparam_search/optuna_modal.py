@@ -5,9 +5,9 @@ Optuna Hyperparameter Search on Modal GPU
 import modal
 
 # Configuration
-N_TRIALS = 20
+N_TRIALS = 6
 EPOCHS_PER_TRIAL = 10
-WANDB_PROJECT = "new-pyreflect-overfitting"
+WANDB_PROJECT = "final-pyreflect-overfitting"
 
 app = modal.App("pyreflect-optuna-new")
 
@@ -31,11 +31,7 @@ image = (
     )
     .apt_install("git")
     .run_commands("pip install git+https://github.com/williamQyq/pyreflect.git")
-    .add_local_dir(
-        "../master_training_data",
-        remote_path="/root/master_training_data",
-        copy=True
-    )
+    .add_local_dir("../150-thousand-curves", remote_path="/root/data", copy=True)
 )
 
 
@@ -62,7 +58,7 @@ def run_optuna_search():
     print("🔍 Starting Optuna on Modal GPU...")
     print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
     
-    DATA_ROOT = Path("/root/master_training_data")
+    DATA_ROOT = Path("/root/data")
     NR_FILE = str(DATA_ROOT / "data/curves/nr_train.npy")
     SLD_FILE = str(DATA_ROOT / "data/curves/sld_train.npy")
     NORM_STATS_FILE = str(DATA_ROOT / "data/normalization_stat.npy")
@@ -113,9 +109,9 @@ def run_optuna_search():
         return train_losses, val_losses
     
     def objective(trial):
-        layers = trial.suggest_int("layers", 6, 12)
-        dropout = trial.suggest_float("dropout", 0.1, 0.4)
-        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+        layers = 6  # Fixed - dominated top 5
+        dropout = trial.suggest_float("dropout", 0.08, 0.12)
+        batch_size = trial.suggest_categorical("batch_size", [64, 128])
         
         print(f"\nTrial {trial.number + 1}/{N_TRIALS}: layers={layers}, dropout={dropout:.2f}, batch={batch_size}")
         
