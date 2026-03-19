@@ -68,11 +68,11 @@ def compute_nr_from_sld(
     # --- Reorder to fronting -> backing (air/water -> substrate) ---
     # refl1d assumes neutrons come from the *fronting* medium.
     if order == "substrate_to_air":
-        # input is substrate -> air, reverse to air -> substrate
-        z = z[::-1]
         rho = rho[::-1]
         if irho is not None:
             irho = irho[::-1]
+        z = z[-1] - z[::-1]  # flip AND make increasing from 0
+
     elif order == "air_to_substrate":
         pass
     else:
