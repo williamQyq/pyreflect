@@ -201,7 +201,7 @@ def _run_study(config_dict: dict, use_wandb: bool) -> dict:
             import wandb
             wandb_run = wandb.init(
                 project=wandb_project,
-                name=f"trial_{trial.number}_L{layers}_D{dropout:.3f}_B{batch_size}",
+                name=f"trial_{trial.number}_L{layers}_D{dropout:.2f}_B{batch_size}",
                 config={
                     "layers": layers,
                     "dropout": dropout,
@@ -237,6 +237,8 @@ def _run_study(config_dict: dict, use_wandb: bool) -> dict:
 
         except Exception as e:
             print(f"Trial {trial.number + 1} failed: {e}")
+            import traceback
+            traceback.print_exc()
             if wandb_run is not None:
                 import wandb
                 wandb.finish()
