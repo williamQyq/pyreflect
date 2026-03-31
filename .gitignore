@@ -1,5 +1,6 @@
 .idea/
 *.yml
+!hyperparam_search/config.yml
 data/
 __pycache__/
 *.pyc
