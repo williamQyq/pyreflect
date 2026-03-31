@@ -37,7 +37,12 @@ interrupted runs can be resumed.
 """
 
 import argparse
+import inspect
+import json
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -303,60 +308,100 @@ def run_local(config: dict, use_wandb: bool) -> None:
 # Modal runner
 # ---------------------------------------------------------------------------
 
-def run_modal(config: dict, use_wandb: bool) -> None:
+def run_modal(config: dict, config_path: str, use_wandb: bool) -> None:
     """
     Run the Optuna study on a Modal GPU.
 
-    Mounts the local data_dir at /root/data on the remote, installs pyreflect
-    from GitHub, and runs the full Optuna study remotely. Results are returned
-    to the local process and saved.
-    """
-    try:
-        import modal
-    except ImportError:
-        sys.exit("Error: 'modal' is not installed. Run: pip install modal")
+    Modal requires functions to be decorated at module level — they cannot be
+    created dynamically at runtime. To work around this while keeping a unified
+    script, this function generates a minimal self-contained Modal script with
+    the study runner properly defined at module level, then invokes it via
+    `modal run`. The temp script is deleted after the run completes.
 
+    Parameters
+    ----------
+    config : dict
+        Loaded config dict.
+    config_path : str
+        Path to the YAML config file (unused by the temp script, kept for
+        the local results path).
+    use_wandb : bool
+        Whether to enable W&B logging on the remote.
+    """
     data_dir = Path(config["data_dir"]).resolve()
     if not data_dir.exists():
         sys.exit(f"Error: data_dir does not exist: {data_dir}")
 
-    # Build the remote config with the Modal data path substituted in
     modal_config = {**config, "data_dir": "/root/data"}
+    out_path = str(data_dir / "optuna_best_params.txt")
+    wandb_pkg = '"wandb",' if use_wandb else ""
+    secret_expr = '[modal.Secret.from_name("wandb-secret")]' if use_wandb else "[]"
 
-    image = (
-        modal.Image.debian_slim(python_version="3.10")
-        .pip_install(
-            "torch==2.5.1", "numpy==2.1.0",
-            "optuna", "pandas", "scikit-learn", "scipy",
-            "opencv-python", "pyyaml", "tqdm", "refnx", "llvmlite", "numba",
-            *(["wandb"] if use_wandb else []),
-        )
-        .apt_install("git")
-        .run_commands("pip install git+https://github.com/williamQyq/pyreflect.git")
-        .add_local_dir(str(data_dir), remote_path="/root/data", copy=True)
+    # Embed _run_study verbatim — it has all its imports inside so Modal can
+    # serialize and ship it to the remote container without local dependencies.
+    run_study_src = inspect.getsource(_run_study)
+
+    # Build result-saving footer as plain strings to avoid f-string escaping
+    # conflicts with the curly braces already present in run_study_src.
+    footer_lines = [
+        "",
+        '@app.function(gpu="T4", image=image, secrets=secrets, timeout=12*60*60)',
+        "def _remote():",
+        "    return _run_study(MODAL_CONFIG, USE_WANDB)",
+        "",
+        "@app.local_entrypoint()",
+        "def main():",
+        "    result = _remote.remote()",
+        "    if not result['success']:",
+        "        print('No trials completed.')",
+        "        return",
+        "    print('Best params: ' + str(result['best_params']))",
+        "    print('Best val loss: ' + str(result['best_val_loss']))",
+        "    with open(" + repr(out_path) + ", 'w') as f:",
+        "        f.write('Best validation loss: ' + f\"{result['best_val_loss']:.6f}\" + '\\n')",
+        "        f.write('Best parameters:\\n')",
+        "        for k, v in result['best_params'].items():",
+        "            f.write('  ' + str(k) + ': ' + str(v) + '\\n')",
+        "    print('Results saved to: ' + " + repr(out_path) + ")",
+    ]
+
+    script = "\n".join([
+        "import modal",
+        "",
+        'app = modal.App("pyreflect-optuna")',
+        "image = (",
+        '    modal.Image.debian_slim(python_version="3.10")',
+        "    .pip_install(",
+        '        "torch==2.5.1", "numpy==2.1.0", "optuna",',
+        '        "pandas", "scikit-learn", "scipy", "opencv-python",',
+        '        "pyyaml", "tqdm", "refnx", "llvmlite", "numba",',
+        f"        {wandb_pkg}",
+        "    )",
+        '    .apt_install("git")',
+        '    .run_commands("pip install git+https://github.com/williamQyq/pyreflect.git")',
+        f"    .add_local_dir({repr(str(data_dir))}, remote_path='/root/data', copy=True)",
+        ")",
+        f"secrets = {secret_expr}",
+        f"MODAL_CONFIG = {json.dumps(modal_config)}",
+        f"USE_WANDB = {use_wandb}",
+        "",
+    ]) + run_study_src + "\n".join(footer_lines)
+
+    tmp = tempfile.NamedTemporaryFile(
+        suffix=".py", mode="w", delete=False, encoding="utf-8"
     )
+    try:
+        tmp.write(script)
+        tmp.close()
 
-    secrets = [modal.Secret.from_name("wandb-secret")] if use_wandb else []
+        print(f"Launching Optuna search on Modal GPU (T4)...")
+        print(f"Data: {data_dir}")
+        print(f"Trials: {config['n_trials']}, Epochs/trial: {config['epochs_per_trial']}\n")
 
-    app = modal.App("pyreflect-optuna")
-
-    # Wrap _run_study as a Modal function
-    remote_run_study = app.function(
-        gpu="T4",
-        image=image,
-        secrets=secrets,
-        timeout=12 * 60 * 60,
-    )(_run_study)
-
-    print(f"Launching Optuna search on Modal GPU (T4)...")
-    print(f"Data: {data_dir}")
-    print(f"Trials: {config['n_trials']}, Epochs/trial: {config['epochs_per_trial']}\n")
-
-    with app.run():
-        result = remote_run_study.remote(modal_config, use_wandb)
-
-    # Save results locally using the original (local) data_dir
-    _save_results({**result, "best_params": result.get("best_params", {})}, config["data_dir"])
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+        subprocess.run(["modal", "run", tmp.name], check=True, env=env)
+    finally:
+        os.unlink(tmp.name)
 
 
 # ---------------------------------------------------------------------------
@@ -395,9 +440,10 @@ def main():
     config = load_config(args.config)
 
     if args.use_modal:
-        run_modal(config, use_wandb=args.use_wandb)
+        run_modal(config, config_path=args.config, use_wandb=args.use_wandb)
     else:
         run_local(config, use_wandb=args.use_wandb)
+
 
 
 if __name__ == "__main__":
