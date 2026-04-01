@@ -74,7 +74,7 @@ def _extract_training_params(config: dict, experiment_dir: Path) -> dict:
     return {
         "nr_train": str((experiment_dir / files["nr_train"]).resolve()),
         "sld_train": str((experiment_dir / files["sld_train"]).resolve()),
-        "norm_stats": str((experiment_dir / files["normalization_stats"]).resolve()),
+        "norm_stats": str((experiment_dir / models["normalization_stats"]).resolve()),
         "layers": models["layers"],
         "dropout": models["dropout"],
         "batch_size": models["batch_size"],
@@ -110,7 +110,6 @@ def _run_training(params: dict, use_wandb: bool) -> bytes:
         Serialized model state dict (.pth file contents).
     """
     import torch
-    import wandb as _wandb  # imported lazily below if needed
     from pyreflect.input import NRSLDDataProcessor
     from pyreflect.models.nr_sld_model_trainer import NRSLDModelTrainer
     import pyreflect.pipelines.reflectivity_pipeline as workflow

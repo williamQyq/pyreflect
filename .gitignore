@@ -13,3 +13,4 @@ experimental_data/
 .claude/
 
 *.pth
+wandb/
