@@ -23,13 +23,41 @@ Each experiment folder is initialized with `pyreflect init` and contains:
   trained_model.pth     ← saved model weights (after training)
 ```
 
+## Setting Up an Experiment
+
+Before training, you need an experiment directory with generated training data.
+
+### Option A — Generate data with pyreflect (recommended)
+
+```bash
+mkdir experiments/my_experiment && cd experiments/my_experiment
+pyreflect init                          # creates settings.yml
+# Edit settings.yml: set layers, dropout, batch_size, epochs, num_curves
+#   under nr_predict_sld.models
+pyreflect run --enable-sld-prediction   # generates .npy data files (also trains
+                                        # a local model — you can ignore that)
+```
+
+### Option B — Copy existing data
+
+If you already have `.npy` files from a notebook or previous run:
+
+```bash
+mkdir -p experiments/my_experiment/data/curves
+cp <your_data>/nr_train.npy  experiments/my_experiment/data/curves/
+cp <your_data>/sld_train.npy experiments/my_experiment/data/curves/
+cp <your_data>/normalization_stat.npy experiments/my_experiment/data/
+pyreflect init --root experiments/my_experiment
+# Edit experiments/my_experiment/settings.yml with your hyperparameters
+```
+
 ## Local Training
 
-Edit `settings.yml` with your desired hyperparameters, then:
+Once data is in place, edit `settings.yml` with your desired hyperparameters, then:
 
 ```bash
 cd <experiment-dir>
-pyreflect run
+pyreflect run --enable-sld-prediction
 ```
 
 This uses pyreflect's built-in training pipeline.
@@ -39,8 +67,8 @@ This uses pyreflect's built-in training pipeline.
 To train on a cloud GPU instead of locally:
 
 ```bash
-python experiments/train_modal.py --experiment-dir experiments/best_model_125k_6L_0.087D
-python experiments/train_modal.py --experiment-dir experiments/best_model_125k_6L_0.087D --use-wandb
+python experiments/train_modal.py --experiment-dir experiments/my_experiment
+python experiments/train_modal.py --experiment-dir experiments/my_experiment --use-wandb
 ```
 
 Reads `settings.yml` from the experiment dir, uploads `data/` to Modal, trains on a T4 GPU,

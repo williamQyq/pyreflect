@@ -5,33 +5,13 @@ Reads training parameters from an experiment directory's settings.yml
 (the config file created by `pyreflect init`) and trains on a Modal T4 GPU.
 The trained model is saved back to the experiment directory.
 
-For local training, use `pyreflect run` directly — this script adds only the
-Modal GPU execution on top of the standard pyreflect training workflow.
+For experiment setup (generating data, directory structure, prerequisites),
+see experiments/README.md.
 
 Usage
 -----
-Train on Modal GPU:
-    python experiments/train_modal.py --experiment-dir experiments/best_model_125k_6L_0.087D
-
-Train on Modal GPU with W&B logging:
-    python experiments/train_modal.py --experiment-dir experiments/best_model_125k_6L_0.087D --use-wandb
-
-Prerequisites
--------------
-- modal:  pip install modal  (and `modal setup` to authenticate)
-- wandb:  pip install wandb  (only if using --use-wandb)
-  - Requires a Modal secret named "wandb-secret" containing WANDB_API_KEY
-    (see https://modal.com/docs/guide/secrets)
-
-The experiment directory must contain:
-    settings.yml           (created by `pyreflect init`, edit with your params)
-    data/curves/nr_train.npy
-    data/curves/sld_train.npy
-    data/normalization_stat.npy
-
-Output
-------
-Trained model saved to: <experiment-dir>/trained_model.pth
+    python experiments/train_modal.py --experiment-dir experiments/my_experiment
+    python experiments/train_modal.py --experiment-dir experiments/my_experiment --use-wandb
 """
 
 import argparse
