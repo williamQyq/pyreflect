@@ -90,7 +90,7 @@ class DataProcessor:
         return normalized_curves
 
     @staticmethod
-    def get_xy_norm_stats(self,data_curves):
+    def get_xy_norm_stats(data_curves):
         curves = np.array(data_curves)
 
         assert curves.ndim == 3 and curves.shape[1] == 2, \
