@@ -1,0 +1,40 @@
+# Hyperparameter Search Configuration
+#
+# Used by hyperparam_search.py to run an Optuna study for the pyreflect
+# NR->SLD CNN model. Adjust these values to match your dataset and desired
+# search space before running the script.
+#
+# Usage:
+#   python hyperparam_search.py --config config.yml
+#   python hyperparam_search.py --config config.yml --use-wandb
+#   python hyperparam_search.py --config config.yml --use-modal
+#   python hyperparam_search.py --config config.yml --use-modal --use-wandb
+
+# Path to the dataset directory. Must follow the structure created by
+# `pyreflect init`, i.e. contain:
+#   data/curves/nr_train.npy
+#   data/curves/sld_train.npy
+#   data/normalization_stat.npy
+data_dir: ../150-thousand-curves
+
+# Weights & Biases project name. Only used when --use-wandb is passed.
+wandb_project: final-pyreflect-overfitting
+
+# Number of Optuna trials to run.
+n_trials: 6
+
+# Number of training epochs per trial. Keep low for fast search.
+epochs_per_trial: 10
+
+# Hyperparameter search space for the CNN model.
+search_space:
+  # List of layer counts to try. Treated as categorical (exact values).
+  # Set to a single value to fix it (e.g. [6] fixes layers at 6).
+  layers: [6]
+
+  # Dropout probability sampled uniformly from [dropout_min, dropout_max].
+  dropout_min: 0.08
+  dropout_max: 0.12
+
+  # Batch sizes to try. Treated as categorical.
+  batch_size: [64, 128]

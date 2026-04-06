@@ -1,5 +1,6 @@
 .idea/
 *.yml
+!hyperparam_search/config.yml
 data/
 __pycache__/
 *.pyc
@@ -7,3 +8,9 @@ __pycache__/
 dist/
 PLAN.md
 .ipynb_checkpoints/
+
+experimental_data/
+.claude/
+
+*.pth
+wandb/
